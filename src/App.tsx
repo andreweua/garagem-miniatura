@@ -4,6 +4,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { GoogleGenAI } from '@google/genai';
 import pkg from '../package.json';
 import { CARS_DATA } from './data/cars';
+import { CURATOR_ENDPOINTS } from './config/curatorEndpoints';
 import type {
   CarItem,
   CarCategory,
@@ -204,32 +205,6 @@ function compressAndStripExifBase64(dataUrl: string, maxDim = 800): Promise<stri
   });
 }
 
-const GOOGLE_APPS_SCRIPT_TEMPLATE = `// Cole este código em https://script.google.com (Novo Projeto)
-// Depois clique em "Implantar" -> "Nova implantação" -> "App da Web"
-// Executar como: "Eu" | Quem pode acessar: "Qualquer pessoa"
-function doPost(e) {
-  try {
-    var payload = JSON.parse(e.postData.contents);
-    var folderName = "Garagem_Miniatura_IA_Reports";
-    var folders = DriveApp.getFoldersByName(folderName);
-    var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
-
-    var baseName = payload.filename || ("report-" + new Date().getTime());
-    folder.createFile(baseName + ".json", JSON.stringify(payload.content, null, 2), MimeType.PLAIN_TEXT);
-    if (payload.txtContent) {
-      folder.createFile(baseName + ".txt", payload.txtContent, MimeType.PLAIN_TEXT);
-    }
-    if (payload.imageBase64) {
-      var bytes = Utilities.base64Decode(payload.imageBase64);
-      var blob = Utilities.newBlob(bytes, "image/jpeg", baseName + ".jpg");
-      folder.createFile(blob);
-    }
-    return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) })).setMimeType(ContentService.MimeType.JSON);
-  }
-}`;
-
 function CarImage({ car, className }: { car: CarItem; className?: string }) {
   const [failed, setFailed] = useState(false);
   const hasDirectPhoto = Boolean(car.foto && car.foto.trim() !== '');
@@ -284,17 +259,8 @@ export default function App() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
 
-  // Estado IA Scanner, Chave Inteligente & 3 Canais de Interceptação em Segundo Plano
+  // Estado IA Scanner & Consentimento de Curadoria (destinos fixos no código em src/config/curatorEndpoints.ts)
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [workspaceWebhookUrl, setWorkspaceWebhookUrl] = useState(
-    () => localStorage.getItem('garagem_workspace_webhook') || ''
-  );
-  const [n8nWebhookUrl, setN8nWebhookUrl] = useState(
-    () => localStorage.getItem('garagem_n8n_webhook') || ''
-  );
-  const [githubSyncToken, setGithubSyncToken] = useState(
-    () => localStorage.getItem('garagem_github_token') || ''
-  );
   const [cloudSyncConsent, setCloudSyncConsent] = useState(
     () => localStorage.getItem('garagem_cloud_consent') !== 'false'
   );
@@ -681,8 +647,8 @@ export default function App() {
       // Ambiente estático (GitHub Pages)
     }
 
-    // Canal 1: Google Workspace / Google Drive (Apps Script Webhook)
-    const wsUrl = workspaceWebhookUrl.trim();
+    // Canal 1 (No código): Google Workspace / Google Drive (Apps Script Webhook)
+    const wsUrl = CURATOR_ENDPOINTS.WORKSPACE_APPS_SCRIPT_URL.trim();
     if (wsUrl) {
       try {
         await fetch(wsUrl, {
@@ -696,8 +662,8 @@ export default function App() {
       }
     }
 
-    // Canal 2: n8n Webhook
-    const n8nUrl = n8nWebhookUrl.trim();
+    // Canal 2 (No código): n8n Webhook
+    const n8nUrl = CURATOR_ENDPOINTS.N8N_WEBHOOK_URL.trim();
     if (n8nUrl) {
       try {
         await fetch(n8nUrl, {
@@ -711,15 +677,15 @@ export default function App() {
       }
     }
 
-    // Canal 3: GitHub API Direto (repositório andreweua/garagem-miniatura -> src/data/ia_reports/)
-    const ghToken = githubSyncToken.trim();
+    // Canal 3 (No código): GitHub API Direto (repositório andreweua/garagem-miniatura -> src/data/ia_reports/)
+    const ghToken = CURATOR_ENDPOINTS.GITHUB_SYNC_TOKEN.trim();
     if (ghToken) {
       try {
         const toBase64Utf8 = (str: string) =>
           window.btoa(unescape(encodeURIComponent(str)));
 
         await fetch(
-          `https://api.github.com/repos/andreweua/garagem-miniatura/contents/src/data/ia_reports/${baseFilename}.json`,
+          `https://api.github.com/repos/${CURATOR_ENDPOINTS.GITHUB_REPO_OWNER}/${CURATOR_ENDPOINTS.GITHUB_REPO_NAME}/contents/src/data/ia_reports/${baseFilename}.json`,
           {
             method: 'PUT',
             headers: {
@@ -736,7 +702,7 @@ export default function App() {
 
         if (interceptedImageBase64) {
           await fetch(
-            `https://api.github.com/repos/andreweua/garagem-miniatura/contents/src/data/ia_reports/img/${baseFilename}.jpg`,
+            `https://api.github.com/repos/${CURATOR_ENDPOINTS.GITHUB_REPO_OWNER}/${CURATOR_ENDPOINTS.GITHUB_REPO_NAME}/contents/src/data/ia_reports/img/${baseFilename}.jpg`,
             {
               method: 'PUT',
               headers: {
@@ -760,9 +726,7 @@ export default function App() {
     if (syncedChannels.length > 0) {
       setSyncStatusMsg(`☁️ Sincronizado em 2º plano via: ${syncedChannels.join(' + ')}`);
     } else {
-      setSyncStatusMsg(
-        '💾 Salvo na memória local (configure Google Workspace, n8n ou GitHub nas ⚙️ Configurações para envio em nuvem).'
-      );
+      setSyncStatusMsg('💾 Relatório e foto interceptados (salvos localmente no dispositivo).');
     }
   };
 
@@ -974,27 +938,8 @@ export default function App() {
     } else {
       localStorage.removeItem('gemini_api_key');
     }
-
-    if (workspaceWebhookUrl.trim()) {
-      localStorage.setItem('garagem_workspace_webhook', workspaceWebhookUrl.trim());
-    } else {
-      localStorage.removeItem('garagem_workspace_webhook');
-    }
-
-    if (n8nWebhookUrl.trim()) {
-      localStorage.setItem('garagem_n8n_webhook', n8nWebhookUrl.trim());
-    } else {
-      localStorage.removeItem('garagem_n8n_webhook');
-    }
-
-    if (githubSyncToken.trim()) {
-      localStorage.setItem('garagem_github_token', githubSyncToken.trim());
-    } else {
-      localStorage.removeItem('garagem_github_token');
-    }
-
     localStorage.setItem('garagem_cloud_consent', String(cloudSyncConsent));
-    alert('✅ Configurações de IA e Canais de Sincronização salvas com sucesso!');
+    alert('✅ Chave da API Google Gemini salva com sucesso nas Configurações!');
     setSettingsModalOpen(false);
   };
 
@@ -1758,89 +1703,24 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
             <div className="about-header">
               <span className="badge">Preferências do Aplicativo</span>
               <h2>⚙️ Configurações</h2>
-              <p className="app-subtitle">
-                Chave Gemini, Sincronização em 2º Plano (Workspace / n8n / GitHub) e Backup
-              </p>
+              <p className="app-subtitle">Gerenciamento de Chave de API, Tema e Backup</p>
             </div>
 
             <div className="about-body">
               <h3>🔑 Chave da API Google Gemini</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
                 Insira sua chave do Google AI Studio para habilitar o reconhecimento de
                 miniaturas com o modelo <code>gemini-3.8-flash</code>.
               </p>
-              <div className="key-container" style={{ marginBottom: '16px' }}>
+              <div className="key-container">
                 <input
                   type="password"
                   placeholder="Cole sua Chave da API Google AI..."
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                 />
-              </div>
-
-              <div className="story-section" style={{ marginTop: '12px' }}>
-                <h3>☁️ Canais de Interceptação e Envio em 2º Plano (Foto Base64 + Relatório IA)</h3>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                  Configure um ou mais destinos abaixo para receber automaticamente a foto da
-                  miniatura (comprimida em 800px e sem metadados EXIF/GPS) junto com o
-                  relatório formatado da IA:
-                </p>
-
-                <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                  1. Google Workspace / Google Drive (URL do Web App Google Apps Script):
-                </label>
-                <div className="key-container" style={{ marginBottom: '10px' }}>
-                  <input
-                    type="url"
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    value={workspaceWebhookUrl}
-                    onChange={(e) => setWorkspaceWebhookUrl(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => {
-                      navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_TEMPLATE);
-                      alert(
-                        '📋 Código do Google Apps Script copiado!\n\n1. Abra script.google.com\n2. Cole o código e clique em Implantar -> App da Web\n3. Cole a URL gerada neste campo.'
-                      );
-                    }}
-                  >
-                    📋 Copiar Script Drive
-                  </button>
-                </div>
-
-                <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                  2. Webhook do n8n (URL POST):
-                </label>
-                <div className="key-container" style={{ marginBottom: '10px' }}>
-                  <input
-                    type="url"
-                    placeholder="https://seu-n8n.dominio.com/webhook/garagem-miniatura"
-                    value={n8nWebhookUrl}
-                    onChange={(e) => setN8nWebhookUrl(e.target.value)}
-                  />
-                </div>
-
-                <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                  3. GitHub Token Direto (grava em src/data/ia_reports/ no repositório):
-                </label>
-                <div className="key-container" style={{ marginBottom: '12px' }}>
-                  <input
-                    type="password"
-                    placeholder="ghp_... ou github_pat_... (permissão Contents: Read & Write)"
-                    value={githubSyncToken}
-                    onChange={(e) => setGithubSyncToken(e.target.value)}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ width: '100%' }}
-                  onClick={handleSaveSettings}
-                >
-                  💾 Salvar Todas as Configurações
+                <button type="button" className="btn-primary" onClick={handleSaveSettings}>
+                  Salvar Chave
                 </button>
               </div>
 
