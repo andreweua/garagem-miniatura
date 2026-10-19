@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { GoogleGenAI } from '@google/genai';
+import pkg from '../package.json';
 import { CARS_DATA } from './data/cars';
 import type { CarItem, CarCategory, ReactionsMap } from './types/car';
 import './App.css';
@@ -279,7 +280,7 @@ Responda em português de forma clara e estruturada:
             <span className="logo-text">
               Garagem<span>Miniatura</span>
             </span>
-            <span className="version-tag">v7.1.0</span>
+            <span className="version-tag">v{pkg.version}</span>
           </div>
 
           <button
@@ -623,7 +624,7 @@ Responda em português de forma clara e estruturada:
             <div className="about-header">
               <span className="badge">Documentação Técnica</span>
               <h2>🏎️ Garagem em Miniatura</h2>
-              <p className="app-subtitle">Aplicação Multiplataforma PWA & Capacitor v7.1.0</p>
+              <p className="app-subtitle">Controlador da Aplicação v{pkg.version}</p>
             </div>
             <div className="about-body">
               <h3>📋 Visão Geral</h3>
@@ -654,7 +655,7 @@ Responda em português de forma clara e estruturada:
         <div className="container footer-content">
           <div className="footer-brand">
             <h3>Garagem em Miniatura</h3>
-            <p className="app-subtitle">Controlador da Aplicação v4.0.0</p>
+            <p className="app-subtitle">Controlador da Aplicação v{pkg.version}</p>
             <p className="collection-desc">Organização, catalogação interativa e preservação histórica de acervo de veículos em miniatura.</p>
           </div>
 
