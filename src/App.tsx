@@ -40,7 +40,18 @@ function loadReactions(): ReactionsMap {
 function loadStories(): StoriesMap {
   try {
     const raw = localStorage.getItem('garagem_stories');
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as StoriesMap;
+    const cleaned: StoriesMap = {};
+    for (const [key, item] of Object.entries(parsed)) {
+      if (item && item.story) {
+        cleaned[Number(key)] = {
+          ...item,
+          story: cleanAiMarkdownText(item.story)
+        };
+      }
+    }
+    return cleaned;
   } catch {
     return {};
   }
@@ -66,14 +77,41 @@ function loadIaReports(): IaReportEntry[] {
 
 /**
  * 1. Formatação Amigável (Clean UI):
- * Remove blocos de código brutos (```...```) e limpa artefatos de formatação
- * para renderização elegante via react-markdown.
+ * Remove blocos de código brutos (```...```), deduplica parágrafos repetidos
+ * e limpa artefatos de formatação para renderização elegante via react-markdown.
  */
 function cleanAiMarkdownText(raw: string): string {
-  return raw
+  const withoutFences = raw
     .replace(/```(?:markdown|json|text|html)?\s*([\s\S]*?)```/gi, '$1')
     .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\r\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // Remove linhas ou parágrafos consecutivos idênticos caso a IA repita blocos
+  const blocks = withoutFences.split('\n\n');
+  const uniqueBlocks: string[] = [];
+  for (const block of blocks) {
+    const trimmedBlock = block.trim();
+    if (!trimmedBlock) continue;
+    const prevBlock = uniqueBlocks[uniqueBlocks.length - 1];
+    if (!prevBlock || prevBlock.toLowerCase() !== trimmedBlock.toLowerCase()) {
+      uniqueBlocks.push(trimmedBlock);
+    }
+  }
+
+  return uniqueBlocks.join('\n\n');
+}
+
+/**
+ * Limpa marcações Markdown para exibição resumida no card da grade do catálogo.
+ */
+function stripMarkdownPreview(md: string): string {
+  return md
+    .replace(/^[#>*\-\d.]+\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -170,6 +208,8 @@ export default function App() {
   const [searchLogs, setSearchLogs] = useState<SearchLogEntry[]>(loadSearchLogs);
   const [iaReports, setIaReports] = useState<IaReportEntry[]>(loadIaReports);
   const [storyDraft, setStoryDraft] = useState('');
+  const [isEditingStory, setIsEditingStory] = useState(false);
+  const [pendingAiStories, setPendingAiStories] = useState<Record<number, string>>({});
   const [openDislikeId, setOpenDislikeId] = useState<number | null>(null);
   const [dislikeDrafts, setDislikeDrafts] = useState<Record<number, string>>({});
   const [menuOpen, setMenuOpen] = useState(false);
@@ -233,11 +273,67 @@ export default function App() {
     }
   }, [iaReports]);
 
+  // Sincroniza automaticamente para src/data/ia_reports/ os relatórios e histórias já feitos anteriormente
+  useEffect(() => {
+    const syncExistingFiles = async () => {
+      for (const storyItem of Object.values(stories)) {
+        if (!storyItem?.story) continue;
+        const baseFilename = `car-${storyItem.carId}-${storyItem.marca}-${storyItem.modelo}`
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 48);
+
+        const cleanMd = cleanAiMarkdownText(storyItem.story);
+        const entry: IaReportEntry = {
+          id: `car-${storyItem.carId}`,
+          filePath: `src/data/ia_reports/${baseFilename}.json`,
+          createdAt: storyItem.updatedAt || new Date().toISOString(),
+          matchedCarId: storyItem.carId,
+          isNewAcquisition: false,
+          detectedVehicleName: `#${storyItem.carId} ${storyItem.marca} ${storyItem.modelo}`,
+          cleanMarkdown: cleanMd
+        };
+
+        const txtContent = [
+          `RELATÓRIO IA SCANNER - GARAGEM EM MINIATURA (v${pkg.version})`,
+          `Arquivo de Destino: src/data/ia_reports/${baseFilename}.txt`,
+          `Data: ${new Date(entry.createdAt).toLocaleString('pt-BR')}`,
+          `Veículo: ${entry.detectedVehicleName}`,
+          `Status no Acervo: Existente no Catálogo (#${storyItem.carId})`,
+          `------------------------------------------------------------`,
+          cleanMd
+        ].join('\n');
+
+        try {
+          await fetch(`${import.meta.env.BASE_URL}__save_ia_report`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: baseFilename,
+              content: entry,
+              txtContent
+            })
+          });
+        } catch {
+          // Ambiente estático sem middleware local
+        }
+      }
+    };
+    void syncExistingFiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (selectedCar) {
-      setStoryDraft(stories[selectedCar.id]?.story || '');
+      const savedOrPending =
+        stories[selectedCar.id]?.story || pendingAiStories[selectedCar.id] || '';
+      setStoryDraft(savedOrPending ? cleanAiMarkdownText(savedOrPending) : '');
+      setIsEditingStory(false);
     }
-  }, [selectedCar, stories]);
+  }, [selectedCar, stories, pendingAiStories]);
 
   useEffect(() => {
     const trimmed = searchQuery.trim();
@@ -427,29 +523,7 @@ export default function App() {
     });
   };
 
-  const handleSaveStory = (car: CarItem, customStoryText?: string) => {
-    const textToSave = (customStoryText ?? storyDraft).trim();
-    setStories((prev) => {
-      if (!textToSave) {
-        const copy = { ...prev };
-        delete copy[car.id];
-        return copy;
-      }
-      return {
-        ...prev,
-        [car.id]: {
-          carId: car.id,
-          marca: car.marca,
-          modelo: car.modelo,
-          story: textToSave,
-          updatedAt: new Date().toISOString()
-        }
-      };
-    });
-    alert(`✅ História salva no card #${car.id} (${car.marca} ${car.modelo})!`);
-  };
-
-  // 2. Salva relatório da IA automaticamente em src/data/ia_reports/
+  // 2. Salva relatório da IA automaticamente em src/data/ia_reports/ (.json e .txt)
   const persistIaReportToProjectFolder = async (
     cleanMarkdown: string,
     analysis: { matchedCar: CarItem | null; isNewAcquisition: boolean; detectedName: string }
@@ -457,15 +531,18 @@ export default function App() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const slug = (
       analysis.matchedCar
-        ? `car-${analysis.matchedCar.id}-${analysis.matchedCar.marca}`
+        ? `car-${analysis.matchedCar.id}-${analysis.matchedCar.marca}-${analysis.matchedCar.modelo}`
         : analysis.detectedName
     )
       .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
-      .slice(0, 32);
+      .slice(0, 40);
 
-    const filename = `report-${timestamp}-${slug || 'veiculo'}.json`;
+    const baseFilename = `report-${timestamp}-${slug || 'veiculo'}`;
+    const filename = `${baseFilename}.json`;
     const filePath = `src/data/ia_reports/${filename}`;
 
     const entry: IaReportEntry = {
@@ -480,22 +557,80 @@ export default function App() {
       cleanMarkdown
     };
 
+    const txtContent = [
+      `RELATÓRIO IA SCANNER - GARAGEM EM MINIATURA (v${pkg.version})`,
+      `Arquivo de Destino: src/data/ia_reports/${baseFilename}.txt`,
+      `Data: ${new Date(entry.createdAt).toLocaleString('pt-BR')}`,
+      `Veículo: ${entry.detectedVehicleName}`,
+      `Status no Acervo: ${
+        entry.isNewAcquisition
+          ? 'Sugestão de Próxima Compra para o Acervo'
+          : `Existente no Catálogo (#${entry.matchedCarId})`
+      }`,
+      `------------------------------------------------------------`,
+      entry.cleanMarkdown
+    ].join('\n');
+
     setIaReports((prev) => [entry, ...prev]);
     setLastSavedReport(entry);
 
-    // Envia para o middleware de escrita física em src/data/ia_reports/ quando rodando localmente
+    // Envia para o middleware de escrita física em src/data/ia_reports/
     try {
-      await fetch('/__save_ia_report', {
+      await fetch(`${import.meta.env.BASE_URL}__save_ia_report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          filename,
-          content: entry
+          filename: baseFilename,
+          content: entry,
+          txtContent
         })
       });
     } catch {
       // Em produção estática (GitHub Pages), permanece salvo em garagem_ia_reports (localStorage)
     }
+  };
+
+  const handleSaveStory = (car: CarItem, customStoryText?: string) => {
+    const rawText = (customStoryText ?? storyDraft).trim();
+    const formattedText = rawText ? cleanAiMarkdownText(rawText) : '';
+
+    setStories((prev) => {
+      if (!formattedText) {
+        const copy = { ...prev };
+        delete copy[car.id];
+        return copy;
+      }
+      return {
+        ...prev,
+        [car.id]: {
+          carId: car.id,
+          marca: car.marca,
+          modelo: car.modelo,
+          story: formattedText,
+          updatedAt: new Date().toISOString()
+        }
+      };
+    });
+
+    setPendingAiStories((prev) => {
+      if (!prev[car.id]) return prev;
+      const copy = { ...prev };
+      delete copy[car.id];
+      return copy;
+    });
+
+    setStoryDraft(formattedText);
+    setIsEditingStory(false);
+
+    if (formattedText) {
+      void persistIaReportToProjectFolder(formattedText, {
+        matchedCar: car,
+        isNewAcquisition: false,
+        detectedName: `${car.marca} ${car.modelo}`
+      });
+    }
+
+    alert(`✅ História formatada e salva no card #${car.id} (${car.marca} ${car.modelo}) e em src/data/ia_reports/!`);
   };
 
   const handleDownloadIaReport = (report: IaReportEntry, ext: 'json' | 'txt' = 'txt') => {
@@ -715,7 +850,7 @@ export default function App() {
 Analise detalhadamente a foto desta miniatura e compare com a lista dos ${CARS_DATA.length} veículos deste acervo:
 ${CARS_DATA.map((c) => `#${c.id} . ${c.marca} ${c.modelo} (${c.ano})`).join('; ')}
 
-Responda em português usando Markdown limpo (sem blocos de código \`\`\`), estruturado em:
+Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem repetir parágrafos), estruturado exatamente em:
 - **Veículo Identificado:** Marca, Modelo, Ano aproximado e Categoria.
 - **História e Curiosidades:** Breve histórico automotivo do modelo real e detalhes da miniatura.
 - **Status no Acervo:** Se já existir na lista acima, cite no formato exato "#ID . Marca Modelo" (ex.: "#1 . Mercedes-Benz 500 SL"). Se não existir no catálogo, escreva explicitamente "Possível Nova Aquisição" e liste até 2 modelos similares do acervo usando "#ID . Marca Modelo".`;
@@ -751,10 +886,19 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`), est
         throw new Error('A IA não gerou candidatos de resposta.');
       }
 
+      // Já formata o resultado assim que chega e prepara para o usuário apenas salvar
       const cleanedMarkdown = cleanAiMarkdownText(rawResponse);
       setAiResult(cleanedMarkdown);
 
       const linkAnalysis = analyzeCollectionLink(cleanedMarkdown);
+      if (linkAnalysis.matchedCar) {
+        const matchedId = linkAnalysis.matchedCar.id;
+        setPendingAiStories((prev) => ({
+          ...prev,
+          [matchedId]: cleanedMarkdown
+        }));
+      }
+
       await persistIaReportToProjectFolder(cleanedMarkdown, linkAnalysis);
     } catch (err) {
       setAiError(err instanceof Error ? err.message : String(err));
@@ -946,7 +1090,9 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`), est
                           <div className="card-brand">{car.marca}</div>
                           <h2 className="card-title">{car.modelo}</h2>
                           {carStory && (
-                            <p className="card-story-preview">📝 {carStory}</p>
+                            <p className="card-story-preview">
+                              📝 {stripMarkdownPreview(carStory)}
+                            </p>
                           )}
                         </div>
 
@@ -1023,7 +1169,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`), est
         </div>
       </section>
 
-      {/* MODAL DETALHES DO CARRO + HISTÓRIA EDITÁVEL + SIMILARES */}
+      {/* MODAL DETALHES DO CARRO + HISTÓRIA FORMATADA + SIMILARES */}
       {selectedCar && (
         <div className="modal-overlay" onClick={() => setSelectedCar(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1056,25 +1202,95 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`), est
               </div>
 
               <div className="story-section">
-                <h3>📖 História / Descrição da Miniatura</h3>
-                <textarea
-                  className="story-textarea"
-                  placeholder="Adicione curiosidades, estado de conservação, história do modelo ou referências (ex.: #1 . Mercedes-Benz 500 SL)..."
-                  value={storyDraft}
-                  onChange={(e) => setStoryDraft(e.target.value)}
-                />
-                {storyDraft.trim() && (
-                  <div className="ai-result ai-markdown-body" style={{ marginTop: '8px' }}>
-                    <ReactMarkdown
-                      components={{
-                        p: ({ children }) => <p>{processMarkdownChildren(children)}</p>,
-                        li: ({ children }) => <li>{processMarkdownChildren(children)}</li>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '10px',
+                    flexWrap: 'wrap'
+                  }}
+                >
+                  <h3 style={{ margin: 0 }}>📖 História / Descrição da Miniatura</h3>
+                  {storyDraft.trim() && (
+                    <button
+                      type="button"
+                      className="btn-mini btn-mini-cancel"
+                      onClick={() => {
+                        if (isEditingStory) {
+                          setStoryDraft((prev) => cleanAiMarkdownText(prev));
+                          setIsEditingStory(false);
+                        } else {
+                          setIsEditingStory(true);
+                        }
                       }}
                     >
-                      {storyDraft}
-                    </ReactMarkdown>
-                  </div>
+                      {isEditingStory ? '✨ Ver Formatado' : '✏️ Editar Texto'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Exibe APENAS o texto formatado quando há conteúdo e não está em edição manual (sem duplicar com textarea) */}
+                {storyDraft.trim() && !isEditingStory ? (
+                  <>
+                    <div className="ai-result ai-markdown-body" style={{ marginTop: 0 }}>
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p>{processMarkdownChildren(children)}</p>,
+                          li: ({ children }) => <li>{processMarkdownChildren(children)}</li>
+                        }}
+                      >
+                        {storyDraft}
+                      </ReactMarkdown>
+                    </div>
+                    <div className="ia-report-meta" style={{ marginTop: '8px' }}>
+                      {stories[selectedCar.id]?.story === storyDraft.trim() ? (
+                        <span>
+                          ✅ Salvo no card #{selectedCar.id} e enviado para{' '}
+                          <code>src/data/ia_reports/</code>
+                        </span>
+                      ) : (
+                        <span>
+                          ✨ Texto já formatado — clique em{' '}
+                          <strong>Salvar História</strong> para gravar no card
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-mini btn-mini-cancel"
+                        onClick={() =>
+                          handleDownloadIaReport(
+                            {
+                              id: `car-${selectedCar.id}`,
+                              filePath: `src/data/ia_reports/car-${selectedCar.id}-${selectedCar.marca
+                                .toLowerCase()
+                                .replace(/[^a-z0-9]+/g, '-')}.json`,
+                              createdAt:
+                                stories[selectedCar.id]?.updatedAt ||
+                                new Date().toISOString(),
+                              matchedCarId: selectedCar.id,
+                              isNewAcquisition: false,
+                              detectedVehicleName: `#${selectedCar.id} ${selectedCar.marca} ${selectedCar.modelo}`,
+                              cleanMarkdown: storyDraft
+                            },
+                            'txt'
+                          )
+                        }
+                      >
+                        ⬇️ Baixar .txt
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <textarea
+                    className="story-textarea"
+                    placeholder="Adicione curiosidades, estado de conservação, história do modelo ou referências (ex.: #1 . Mercedes-Benz 500 SL)..."
+                    value={storyDraft}
+                    onChange={(e) => setStoryDraft(e.target.value)}
+                  />
                 )}
+
                 <div className="story-actions">
                   <button
                     type="button"

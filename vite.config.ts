@@ -12,7 +12,11 @@ export default defineConfig({
     {
       name: 'ia-reports-writer',
       configureServer(server) {
-        server.middlewares.use('/__save_ia_report', (req, res) => {
+        server.middlewares.use((req, res, next) => {
+          if (!req.url || !req.url.includes('__save_ia_report')) {
+            next()
+            return
+          }
           if (req.method !== 'POST') {
             res.statusCode = 405
             res.end('Method Not Allowed')
@@ -29,18 +33,54 @@ export default defineConfig({
               if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true })
               }
-              const safeName = String(payload.filename || `report-${Date.now()}.json`).replace(
-                /[^a-zA-Z0-9._-]/g,
-                '_'
-              )
-              const targetPath = path.join(dir, safeName)
-              const content =
+              const baseSlug = String(payload.filename || `report-${Date.now()}`)
+                .replace(/\.(json|txt)$/i, '')
+                .replace(/[^a-zA-Z0-9._-]/g, '_')
+
+              const jsonName = `${baseSlug}.json`
+              const txtName = `${baseSlug}.txt`
+
+              const jsonPath = path.join(dir, jsonName)
+              const txtPath = path.join(dir, txtName)
+
+              const jsonContent =
                 typeof payload.content === 'string'
                   ? payload.content
                   : JSON.stringify(payload.content, null, 2)
-              fs.writeFileSync(targetPath, content, 'utf-8')
+              fs.writeFileSync(jsonPath, jsonContent, 'utf-8')
+
+              if (payload.txtContent) {
+                fs.writeFileSync(txtPath, String(payload.txtContent), 'utf-8')
+              }
+
+              // Atualiza index.json na pasta src/data/ia_reports/
+              const indexPath = path.join(dir, 'index.json')
+              let indexData: { description: string; reports: unknown[] } = {
+                description:
+                  'Diretório de relatórios gerados automaticamente pela IA (gemini-3.8-flash) para o acervo Garagem em Miniatura.',
+                reports: []
+              }
+              if (fs.existsSync(indexPath)) {
+                try {
+                  indexData = JSON.parse(fs.readFileSync(indexPath, 'utf-8'))
+                } catch {
+                  // mantém estrutura padrão
+                }
+              }
+              if (payload.content && typeof payload.content === 'object') {
+                const existing = Array.isArray(indexData.reports) ? indexData.reports : []
+                indexData.reports = [payload.content, ...existing.slice(0, 99)]
+                fs.writeFileSync(indexPath, JSON.stringify(indexData, null, 2), 'utf-8')
+              }
+
               res.setHeader('Content-Type', 'application/json')
-              res.end(JSON.stringify({ ok: true, path: `src/data/ia_reports/${safeName}` }))
+              res.end(
+                JSON.stringify({
+                  ok: true,
+                  jsonPath: `src/data/ia_reports/${jsonName}`,
+                  txtPath: `src/data/ia_reports/${txtName}`
+                })
+              )
             } catch (err) {
               res.statusCode = 500
               res.end(JSON.stringify({ ok: false, error: String(err) }))
