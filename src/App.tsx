@@ -651,28 +651,23 @@ Responda em português de forma clara e estruturada:
         </div>
       )}
 
-      <footer className="footer">
-        <div className="container">
-          <details className="readme-accordion">
-            <summary>⚙️ Especificações Técnicas da Plataforma (Vite + React + PWA + Capacitor)</summary>
-            <div className="readme-accordion-body">
-              <p>
-                • <strong>Stack:</strong> Vite + React + TypeScript com CSS Moderno
-                (Container/Content Visibility &amp; Safe Area Insets).
-              </p>
-              <p>
-                • <strong>PWA Offline:</strong> Service Worker em modo{' '}
-                <code>generateSW</code> via Workbox com cache automático do acervo.
-              </p>
-              <p>
-                • <strong>Mobile Nativo:</strong> Configurado com Capacitor (
-                <code>com.larfacil.app</code>) apontando para <code>dist/</code>.
-              </p>
-            </div>
-          </details>
+      <footer className="footer" id="sobre">
+        <div className="container footer-content">
+          <div className="footer-brand">
+            <h3>Garagem em Miniatura</h3>
+            <p className="app-subtitle">Controlador da Aplicação v4.0.0</p>
+            <p className="collection-desc">Organização, catalogação interativa e preservação histórica de acervo de veículos em miniatura.</p>
+          </div>
+
           <div className="footer-credits">
-            <span className="lab-name">PereiraLabs • Louzada &amp; Pereira - Soluções Digitais</span>
-            <span>Garagem em Miniatura © {new Date().getFullYear()} — Todos os direitos reservados.</span>
+            <span className="developed-by">Desenvolvido por:</span>
+            <strong className="lab-name">PereiraLabs</strong>
+            <span className="lab-role">Divisão de Tecnologia e IA</span>
+            <span className="parent-company">Louzada &amp; Pereira - Soluções Digitais</span>
+          </div>
+
+          <div className="footer-bottom">
+            <small>© Garagem em Miniatura. Hospedado via GitHub Pages.</small>
           </div>
         </div>
       </footer>
