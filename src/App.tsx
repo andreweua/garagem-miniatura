@@ -237,11 +237,16 @@ Responda em português de forma clara e estruturada:
       const interaction = await ai.interactions.create({
         model: 'gemini-3.8-flash',
         input: [
-          { type: 'text' as const, text: prompt },
+          { type: 'text', text: prompt },
           {
-            type: 'image' as const,
+            type: 'image',
             data: selectedImageBase64,
-            mime_type: selectedImageMime
+            mime_type: selectedImageMime as
+              | 'image/jpeg'
+              | 'image/png'
+              | 'image/webp'
+              | 'image/heic'
+              | 'image/heif'
           }
         ]
       });
