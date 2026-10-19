@@ -1253,6 +1253,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                           <div className="card-tags">
                             <span className="card-badge">{car.categoria}</span>
                             {car.ano !== '—' && <span className="card-year">{car.ano}</span>}
+                            {car.escala && <span className="card-year">📏 {car.escala}</span>}
                           </div>
                           <span className="card-id">#{car.id}</span>
                         </div>
@@ -1353,6 +1354,18 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                 <span>Fabricante da Miniatura:</span>{' '}
                 <strong>{selectedCar.fabricante}</strong>
               </div>
+              {selectedCar.escala && (
+                <div className="detail-row">
+                  <span>Escala da Miniatura:</span>{' '}
+                  <strong>{selectedCar.escala}</strong>
+                </div>
+              )}
+              {selectedCar.precoCompra && (
+                <div className="detail-row">
+                  <span>Preço de Compra:</span>{' '}
+                  <strong style={{ color: '#4ade80' }}>{selectedCar.precoCompra}</strong>
+                </div>
+              )}
 
               <div className="story-section">
                 <div
