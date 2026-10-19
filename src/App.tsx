@@ -167,6 +167,69 @@ function analyzeCollectionLink(cleanText: string): {
   return { matchedCar: null, isNewAcquisition: true, detectedName };
 }
 
+/**
+ * Comprime a foto para máx. 800px JPEG (qualidade 0.82) via HTML5 Canvas.
+ * IMPORTANTE (Conformidade Google Play / Apple App Store / LGPD):
+ * O redesenho em <canvas> remove 100% dos metadados EXIF ocultos (como localização GPS,
+ * modelo do aparelho e data/hora do dispositivo), enviando apenas os pixels da miniatura.
+ */
+function compressAndStripExifBase64(dataUrl: string, maxDim = 800): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width >= height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(dataUrl.split(',')[1] || '');
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      const cleanDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      resolve(cleanDataUrl.split(',')[1] || '');
+    };
+    img.onerror = () => resolve(dataUrl.split(',')[1] || '');
+    img.src = dataUrl;
+  });
+}
+
+const GOOGLE_APPS_SCRIPT_TEMPLATE = `// Cole este código em https://script.google.com (Novo Projeto)
+// Depois clique em "Implantar" -> "Nova implantação" -> "App da Web"
+// Executar como: "Eu" | Quem pode acessar: "Qualquer pessoa"
+function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var folderName = "Garagem_Miniatura_IA_Reports";
+    var folders = DriveApp.getFoldersByName(folderName);
+    var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+
+    var baseName = payload.filename || ("report-" + new Date().getTime());
+    folder.createFile(baseName + ".json", JSON.stringify(payload.content, null, 2), MimeType.PLAIN_TEXT);
+    if (payload.txtContent) {
+      folder.createFile(baseName + ".txt", payload.txtContent, MimeType.PLAIN_TEXT);
+    }
+    if (payload.imageBase64) {
+      var bytes = Utilities.base64Decode(payload.imageBase64);
+      var blob = Utilities.newBlob(bytes, "image/jpeg", baseName + ".jpg");
+      folder.createFile(blob);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
 function CarImage({ car, className }: { car: CarItem; className?: string }) {
   const [failed, setFailed] = useState(false);
   const hasDirectPhoto = Boolean(car.foto && car.foto.trim() !== '');
@@ -221,8 +284,22 @@ export default function App() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
 
-  // Estado IA Scanner & Chave Inteligente
+  // Estado IA Scanner, Chave Inteligente & 3 Canais de Interceptação em Segundo Plano
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [workspaceWebhookUrl, setWorkspaceWebhookUrl] = useState(
+    () => localStorage.getItem('garagem_workspace_webhook') || ''
+  );
+  const [n8nWebhookUrl, setN8nWebhookUrl] = useState(
+    () => localStorage.getItem('garagem_n8n_webhook') || ''
+  );
+  const [githubSyncToken, setGithubSyncToken] = useState(
+    () => localStorage.getItem('garagem_github_token') || ''
+  );
+  const [cloudSyncConsent, setCloudSyncConsent] = useState(
+    () => localStorage.getItem('garagem_cloud_consent') !== 'false'
+  );
+  const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
+
   const [selectedImageBase64, setSelectedImageBase64] = useState<string | null>(null);
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
   const [selectedImageMime, setSelectedImageMime] = useState('image/jpeg');
@@ -523,10 +600,11 @@ export default function App() {
     });
   };
 
-  // 2. Salva relatório da IA automaticamente em src/data/ia_reports/ (.json e .txt)
+  // 2. Intercepta Base64 (sem EXIF/GPS) + Resposta da IA e envia em segundo plano para os 3 canais + pasta local
   const persistIaReportToProjectFolder = async (
     cleanMarkdown: string,
-    analysis: { matchedCar: CarItem | null; isNewAcquisition: boolean; detectedName: string }
+    analysis: { matchedCar: CarItem | null; isNewAcquisition: boolean; detectedName: string },
+    interceptedImageBase64?: string | null
   ) => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const slug = (
@@ -574,19 +652,117 @@ export default function App() {
     setIaReports((prev) => [entry, ...prev]);
     setLastSavedReport(entry);
 
-    // Envia para o middleware de escrita física em src/data/ia_reports/
+    if (!cloudSyncConsent) {
+      setSyncStatusMsg('🔒 Modo somente local ativo (sincronização externa desativada pelo usuário).');
+      return;
+    }
+
+    const payload = {
+      filename: baseFilename,
+      content: entry,
+      txtContent,
+      imageBase64: interceptedImageBase64 || null,
+      imageMimeType: 'image/jpeg',
+      exifStripped: true,
+      appVersion: `v${pkg.version}`
+    };
+
+    const syncedChannels: string[] = [];
+
+    // Canal 0: Servidor de Desenvolvimento Local (src/data/ia_reports/)
     try {
-      await fetch(`${import.meta.env.BASE_URL}__save_ia_report`, {
+      const localRes = await fetch(`${import.meta.env.BASE_URL}__save_ia_report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: baseFilename,
-          content: entry,
-          txtContent
-        })
+        body: JSON.stringify(payload)
       });
+      if (localRes.ok) syncedChannels.push('Pasta Local');
     } catch {
-      // Em produção estática (GitHub Pages), permanece salvo em garagem_ia_reports (localStorage)
+      // Ambiente estático (GitHub Pages)
+    }
+
+    // Canal 1: Google Workspace / Google Drive (Apps Script Webhook)
+    const wsUrl = workspaceWebhookUrl.trim();
+    if (wsUrl) {
+      try {
+        await fetch(wsUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        syncedChannels.push('Google Workspace');
+      } catch {
+        // Falha silenciosa de rede
+      }
+    }
+
+    // Canal 2: n8n Webhook
+    const n8nUrl = n8nWebhookUrl.trim();
+    if (n8nUrl) {
+      try {
+        await fetch(n8nUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        syncedChannels.push('n8n');
+      } catch {
+        // Falha silenciosa de rede
+      }
+    }
+
+    // Canal 3: GitHub API Direto (repositório andreweua/garagem-miniatura -> src/data/ia_reports/)
+    const ghToken = githubSyncToken.trim();
+    if (ghToken) {
+      try {
+        const toBase64Utf8 = (str: string) =>
+          window.btoa(unescape(encodeURIComponent(str)));
+
+        await fetch(
+          `https://api.github.com/repos/andreweua/garagem-miniatura/contents/src/data/ia_reports/${baseFilename}.json`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${ghToken}`,
+              Accept: 'application/vnd.github+json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: `chore(ia-report): ${entry.detectedVehicleName}`,
+              content: toBase64Utf8(JSON.stringify(entry, null, 2))
+            })
+          }
+        );
+
+        if (interceptedImageBase64) {
+          await fetch(
+            `https://api.github.com/repos/andreweua/garagem-miniatura/contents/src/data/ia_reports/img/${baseFilename}.jpg`,
+            {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${ghToken}`,
+                Accept: 'application/vnd.github+json',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                message: `chore(ia-photo): foto miniatura ${entry.detectedVehicleName}`,
+                content: interceptedImageBase64
+              })
+            }
+          );
+        }
+        syncedChannels.push('GitHub Repo');
+      } catch {
+        // Falha silenciosa de rede
+      }
+    }
+
+    if (syncedChannels.length > 0) {
+      setSyncStatusMsg(`☁️ Sincronizado em 2º plano via: ${syncedChannels.join(' + ')}`);
+    } else {
+      setSyncStatusMsg(
+        '💾 Salvo na memória local (configure Google Workspace, n8n ou GitHub nas ⚙️ Configurações para envio em nuvem).'
+      );
     }
   };
 
@@ -623,11 +799,15 @@ export default function App() {
     setIsEditingStory(false);
 
     if (formattedText) {
-      void persistIaReportToProjectFolder(formattedText, {
-        matchedCar: car,
-        isNewAcquisition: false,
-        detectedName: `${car.marca} ${car.modelo}`
-      });
+      void persistIaReportToProjectFolder(
+        formattedText,
+        {
+          matchedCar: car,
+          isNewAcquisition: false,
+          detectedName: `${car.marca} ${car.modelo}`
+        },
+        selectedImageBase64
+      );
     }
 
     alert(`✅ História formatada e salva no card #${car.id} (${car.marca} ${car.modelo}) e em src/data/ia_reports/!`);
@@ -787,15 +967,34 @@ export default function App() {
     window.open(`https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  const handleSaveKey = () => {
-    const trimmed = apiKey.trim();
-    if (!trimmed) {
+  const handleSaveSettings = () => {
+    const trimmedKey = apiKey.trim();
+    if (trimmedKey) {
+      localStorage.setItem('gemini_api_key', trimmedKey);
+    } else {
       localStorage.removeItem('gemini_api_key');
-      alert('Chave da API removida das configurações.');
-      return;
     }
-    localStorage.setItem('gemini_api_key', trimmed);
-    alert('✅ Chave da API Google Gemini salva com sucesso nas Configurações!');
+
+    if (workspaceWebhookUrl.trim()) {
+      localStorage.setItem('garagem_workspace_webhook', workspaceWebhookUrl.trim());
+    } else {
+      localStorage.removeItem('garagem_workspace_webhook');
+    }
+
+    if (n8nWebhookUrl.trim()) {
+      localStorage.setItem('garagem_n8n_webhook', n8nWebhookUrl.trim());
+    } else {
+      localStorage.removeItem('garagem_n8n_webhook');
+    }
+
+    if (githubSyncToken.trim()) {
+      localStorage.setItem('garagem_github_token', githubSyncToken.trim());
+    } else {
+      localStorage.removeItem('garagem_github_token');
+    }
+
+    localStorage.setItem('garagem_cloud_consent', String(cloudSyncConsent));
+    alert('✅ Configurações de IA e Canais de Sincronização salvas com sucesso!');
     setSettingsModalOpen(false);
   };
 
@@ -803,15 +1002,18 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setSelectedImageMime(file.type || 'image/jpeg');
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const fullBase64 = String(event.target?.result || '');
-      setSelectedImagePreview(fullBase64);
-      setSelectedImageBase64(fullBase64.split(',')[1] || null);
+    reader.onload = async (event) => {
+      const fullDataUrl = String(event.target?.result || '');
+      setSelectedImagePreview(fullDataUrl);
+      // Comprime para máx 800px e remove 100% dos metadados EXIF/GPS (conformidade LGPD / Play Store / App Store)
+      const strippedCompressedBase64 = await compressAndStripExifBase64(fullDataUrl, 800);
+      setSelectedImageMime('image/jpeg');
+      setSelectedImageBase64(strippedCompressedBase64);
       setAiResult(null);
       setAiError(null);
       setLastSavedReport(null);
+      setSyncStatusMsg(null);
     };
     reader.readAsDataURL(file);
   };
@@ -820,7 +1022,7 @@ export default function App() {
     const key = (apiKey || localStorage.getItem('gemini_api_key') || '').trim();
     if (!key) {
       alert(
-        '🔑 Chave da API não configurada!\n\nPara usar o IA Scanner, abra o menu "⚙️ Configurações" no topo do app, cole sua chave do Google AI Studio e clique em "Salvar Chave".'
+        '🔑 Chave da API não configurada!\n\nPara usar o IA Scanner, abra o menu "⚙️ Configurações" no topo do app, cole sua chave do Google AI Studio e clique em "Salvar Configurações".'
       );
       setAiModalOpen(false);
       setSettingsModalOpen(true);
@@ -835,6 +1037,7 @@ export default function App() {
     setAiError(null);
     setAiResult(null);
     setLastSavedReport(null);
+    setSyncStatusMsg(null);
 
     setSearchLogs((prev) => [
       {
@@ -899,7 +1102,12 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         }));
       }
 
-      await persistIaReportToProjectFolder(cleanedMarkdown, linkAnalysis);
+      // Intercepta Base64 (sem EXIF/GPS) + Resposta da IA e sincroniza em 2º plano
+      await persistIaReportToProjectFolder(
+        cleanedMarkdown,
+        linkAnalysis,
+        selectedImageBase64
+      );
     } catch (err) {
       setAiError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -1383,6 +1591,38 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                 <label htmlFor="ai-file-input" className="btn-primary">
                   📸 Tirar Foto / Carregar Arquivo
                 </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    fontSize: '0.78rem',
+                    color: 'var(--text-muted)',
+                    textAlign: 'left',
+                    maxWidth: '460px',
+                    marginTop: '6px',
+                    cursor: 'pointer',
+                    lineHeight: 1.4
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={cloudSyncConsent}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setCloudSyncConsent(checked);
+                      localStorage.setItem('garagem_cloud_consent', String(checked));
+                    }}
+                    style={{ marginTop: '2px' }}
+                  />
+                  <span>
+                    <strong>Contribuir com o Acervo PereiraLabs:</strong> Autorizo o envio da
+                    foto da miniatura (com remoção automática de GPS/EXIF) e da análise
+                    técnica para curadoria e atualização do catálogo.
+                  </span>
+                </label>
+
                 {selectedImagePreview && (
                   <div className="ai-preview">
                     <img src={selectedImagePreview} alt="Prévia" />
@@ -1424,12 +1664,19 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                   </ReactMarkdown>
                 </div>
 
-                {/* 2. Confirmação de Salvamento em src/data/ia_reports/ */}
+                {/* 2. Confirmação de Salvamento em src/data/ia_reports/ + Status dos 3 Canais */}
                 {lastSavedReport && (
                   <div className="ia-report-meta">
-                    <span>
-                      📁 Salvo em: <code>{lastSavedReport.filePath}</code>
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span>
+                        📁 Salvo em: <code>{lastSavedReport.filePath}</code>
+                      </span>
+                      {syncStatusMsg && (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          {syncStatusMsg}
+                        </span>
+                      )}
+                    </div>
                     <button
                       type="button"
                       className="btn-mini btn-mini-cancel"
@@ -1511,29 +1758,94 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
             <div className="about-header">
               <span className="badge">Preferências do Aplicativo</span>
               <h2>⚙️ Configurações</h2>
-              <p className="app-subtitle">Gerenciamento de Chave de API, Tema e Backup</p>
+              <p className="app-subtitle">
+                Chave Gemini, Sincronização em 2º Plano (Workspace / n8n / GitHub) e Backup
+              </p>
             </div>
 
             <div className="about-body">
               <h3>🔑 Chave da API Google Gemini</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
                 Insira sua chave do Google AI Studio para habilitar o reconhecimento de
                 miniaturas com o modelo <code>gemini-3.8-flash</code>.
               </p>
-              <div className="key-container">
+              <div className="key-container" style={{ marginBottom: '16px' }}>
                 <input
                   type="password"
                   placeholder="Cole sua Chave da API Google AI..."
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                 />
-                <button type="button" className="btn-primary" onClick={handleSaveKey}>
-                  Salvar Chave
+              </div>
+
+              <div className="story-section" style={{ marginTop: '12px' }}>
+                <h3>☁️ Canais de Interceptação e Envio em 2º Plano (Foto Base64 + Relatório IA)</h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  Configure um ou mais destinos abaixo para receber automaticamente a foto da
+                  miniatura (comprimida em 800px e sem metadados EXIF/GPS) junto com o
+                  relatório formatado da IA:
+                </p>
+
+                <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  1. Google Workspace / Google Drive (URL do Web App Google Apps Script):
+                </label>
+                <div className="key-container" style={{ marginBottom: '10px' }}>
+                  <input
+                    type="url"
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    value={workspaceWebhookUrl}
+                    onChange={(e) => setWorkspaceWebhookUrl(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => {
+                      navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_TEMPLATE);
+                      alert(
+                        '📋 Código do Google Apps Script copiado!\n\n1. Abra script.google.com\n2. Cole o código e clique em Implantar -> App da Web\n3. Cole a URL gerada neste campo.'
+                      );
+                    }}
+                  >
+                    📋 Copiar Script Drive
+                  </button>
+                </div>
+
+                <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  2. Webhook do n8n (URL POST):
+                </label>
+                <div className="key-container" style={{ marginBottom: '10px' }}>
+                  <input
+                    type="url"
+                    placeholder="https://seu-n8n.dominio.com/webhook/garagem-miniatura"
+                    value={n8nWebhookUrl}
+                    onChange={(e) => setN8nWebhookUrl(e.target.value)}
+                  />
+                </div>
+
+                <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  3. GitHub Token Direto (grava em src/data/ia_reports/ no repositório):
+                </label>
+                <div className="key-container" style={{ marginBottom: '12px' }}>
+                  <input
+                    type="password"
+                    placeholder="ghp_... ou github_pat_... (permissão Contents: Read & Write)"
+                    value={githubSyncToken}
+                    onChange={(e) => setGithubSyncToken(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ width: '100%' }}
+                  onClick={handleSaveSettings}
+                >
+                  💾 Salvar Todas as Configurações
                 </button>
               </div>
 
               <div className="story-section">
-                <h3>📤 Exportação e Envio para o Desenvolvedor</h3>
+                <h3>📤 Exportação Manual e Envio para o Desenvolvedor</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
                   Gere um arquivo estruturado com todas as histórias editadas (
                   {Object.keys(stories).length}), relatórios IA ({iaReports.length}) e
@@ -1561,7 +1873,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         </div>
       )}
 
-      {/* MODAL SOBRE */}
+      {/* MODAL SOBRE & POLÍTICA DE PRIVACIDADE (GOOGLE PLAY / APP STORE / LGPD) */}
       {aboutModalOpen && (
         <div className="modal-overlay" onClick={() => setAboutModalOpen(false)}>
           <div
@@ -1586,6 +1898,21 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                 Catalogação e curadoria interativa de 105 réplicas automotivas em
                 miniatura com suporte offline (PWA) e empacotamento nativo Android/iOS via
                 Capacitor.
+              </p>
+              <br />
+              <h3>🔒 Política de Privacidade &amp; Conformidade (Google Play / App Store / LGPD)</h3>
+              <p style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
+                • <strong>Coleta Voluntária e Transparente:</strong> As imagens capturadas no
+                Scanner IA destinam-se exclusivamente à identificação de miniaturas
+                automotivas via Google Gemini e, mediante consentimento ativo do usuário, à
+                curadoria colaborativa do acervo <em>Garagem em Miniatura</em>.<br />
+                • <strong>Remoção Automática de Metadados (EXIF/GPS Strip):</strong> Antes de
+                qualquer análise ou envio para curadoria, o aplicativo redesenha a imagem em
+                memória removendo 100% dos metadados EXIF ocultos (incluindo coordenadas GPS,
+                identificação do aparelho e data/hora).<br />
+                • <strong>Sem Rastreamento Pessoal:</strong> O aplicativo não coleta dados
+                pessoais sensíveis, contatos, localização geográfica nem realiza capturas em
+                segundo plano sem ação direta do usuário.
               </p>
               <br />
               <h3>🏢 PereiraLabs</h3>

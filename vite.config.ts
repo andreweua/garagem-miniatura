@@ -53,6 +53,22 @@ export default defineConfig({
                 fs.writeFileSync(txtPath, String(payload.txtContent), 'utf-8')
               }
 
+              let imgPathRelative: string | null = null
+              if (payload.imageBase64) {
+                const imgDir = path.join(dir, 'img')
+                if (!fs.existsSync(imgDir)) {
+                  fs.mkdirSync(imgDir, { recursive: true })
+                }
+                const imgName = `${baseSlug}.jpg`
+                const imgPath = path.join(imgDir, imgName)
+                const cleanBase64 = String(payload.imageBase64).replace(
+                  /^data:image\/\w+;base64,/,
+                  ''
+                )
+                fs.writeFileSync(imgPath, Buffer.from(cleanBase64, 'base64'))
+                imgPathRelative = `src/data/ia_reports/img/${imgName}`
+              }
+
               // Atualiza index.json na pasta src/data/ia_reports/
               const indexPath = path.join(dir, 'index.json')
               let indexData: { description: string; reports: unknown[] } = {
@@ -78,7 +94,8 @@ export default defineConfig({
                 JSON.stringify({
                   ok: true,
                   jsonPath: `src/data/ia_reports/${jsonName}`,
-                  txtPath: `src/data/ia_reports/${txtName}`
+                  txtPath: `src/data/ia_reports/${txtName}`,
+                  imgPath: imgPathRelative
                 })
               )
             } catch (err) {

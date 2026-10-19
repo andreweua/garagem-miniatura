@@ -1,7 +1,7 @@
 {
   "name": "garagem-miniatura",
   "private": true,
-  "version": "2.4.7",
+  "version": "2.4.8",
   "type": "module",
   "description": "PWA e App Multiplataforma - Catálogo interativo e curadoria de veículos em miniatura com IA (PereiraLabs)",
   "scripts": {
