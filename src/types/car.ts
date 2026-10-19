@@ -26,3 +26,20 @@ export interface CarReaction {
 }
 
 export type ReactionsMap = Record<number, CarReaction>;
+
+export interface CarStoryEntry {
+  carId: number;
+  marca: string;
+  modelo: string;
+  story: string;
+  updatedAt: string;
+}
+
+export type StoriesMap = Record<number, CarStoryEntry>;
+
+export interface SearchLogEntry {
+  query: string;
+  category: string;
+  timestamp: string;
+  type: 'busca' | 'ia-scanner';
+}
