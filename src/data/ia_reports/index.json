@@ -1,6 +1,6 @@
 {
   "repository": "src/data/ia_reports",
   "description": "Diretório de armazenamento automático dos relatórios gerados pelo IA Scanner (gemini-3.8-flash).",
-  "version": "2.4.6",
+  "version": "2.4.7",
   "reports": []
 }
