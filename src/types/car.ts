@@ -13,7 +13,7 @@ export interface CarItem {
   modelo: string;
   ano: string;
   fabricante: string;
-  categoria: Exclude<CarCategory, 'todos'>;
+  categoria: string;
   icon: string;
   foto: string;
 }

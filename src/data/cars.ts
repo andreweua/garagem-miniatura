@@ -107,3 +107,5 @@ export const CARS_DATA: CarItem[] = [
   { id: 104, marca: "Porsche", modelo: "911 GT3 RS", ano: "—", fabricante: "—", categoria: "Esportivo", icon: "🏎️", foto: "" },
   { id: 105, marca: "McLaren", modelo: "Senna", ano: "—", fabricante: "—", categoria: "Esportivo", icon: "🏎️", foto: "" }
 ];
+
+export const vehicles = CARS_DATA;
