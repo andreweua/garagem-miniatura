@@ -638,7 +638,7 @@ Responda em português de forma clara e estruturada:
               <p>
                 Divisão de Tecnologia e IA
                 <br />
-                Louzada &amp; Pereira
+                Louzada &amp; Pereira - Soluções Digitais
                 <br />
                 <a
                   href="https://github.com/andreweua/garagem-miniatura"
