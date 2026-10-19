@@ -325,7 +325,7 @@ Responda em português de forma clara e estruturada:
 
       <section className="hero">
         <div className="container hero-content">
-          <span className="badge">Coleção Particular • PereiraLabs</span>
+          <span className="badge">Coleção Particular • by PereiraLabs</span>
           <h1>Acervo de Veículos em Miniatura</h1>
           <p>
             Catálogo interativo reunindo clássicos, muscle cars, modelos nacionais e
@@ -636,7 +636,9 @@ Responda em português de forma clara e estruturada:
               <br />
               <h3>🏢 PereiraLabs</h3>
               <p>
-                Divisão da Louzada &amp; Pereira - Soluções Digitais
+                Divisão de Tecnologia e IA
+                <br />
+                Louzada &amp; Pereira
                 <br />
                 <a
                   href="https://github.com/andreweua/garagem-miniatura"
