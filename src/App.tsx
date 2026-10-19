@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
+import { GoogleGenAI } from '@google/genai';
 import { CARS_DATA } from './data/cars';
 import type { CarItem, CarCategory, ReactionsMap } from './types/car';
 import './App.css';
@@ -232,34 +233,27 @@ Responda em português de forma clara e estruturada:
 2. Este modelo já existe na lista acima? Se sim, cite o número (#ID) correspondente. Se não existir, declare como 'Possível Nova Aquisição'.`;
 
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt },
-                {
-                  inline_data: {
-                    mime_type: selectedImageMime,
-                    data: selectedImageBase64
-                  }
-                }
-              ]
-            }
-          ]
-        })
+      const ai = new GoogleGenAI({ apiKey: key });
+      const interaction = await ai.interactions.create({
+        model: 'gemini-3.8-flash',
+        input: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image',
+            data: selectedImageBase64,
+            mime_type: selectedImageMime
+          }
+        ]
       });
 
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error?.message || `Erro HTTP ${res.status}`);
-      }
+      const interactionRecord = interaction as unknown as {
+        output_text?: string;
+        outputs?: Array<{ type?: string; text?: string }>;
+      };
+      const textoResposta =
+        interactionRecord.output_text ||
+        interactionRecord.outputs?.find((o) => o.type === 'text')?.text;
 
-      const candidate = data.candidates?.[0];
-      const textoResposta = candidate?.content?.parts?.[0]?.text;
       if (!textoResposta) {
         throw new Error('A IA não gerou candidatos de resposta.');
       }
@@ -548,7 +542,7 @@ Responda em português de forma clara e estruturada:
               &times;
             </button>
             <div className="ai-modal-header">
-              <span className="ai-badge">Google Gemini 2.5 Flash</span>
+              <span className="ai-badge">Google Gemini 3.8 Flash</span>
               <h2>🔍 Comparador com o Acervo</h2>
               <p>Tire uma foto ou carregue um arquivo para comparar com a coleção.</p>
             </div>
@@ -593,7 +587,7 @@ Responda em português de forma clara e estruturada:
             </div>
 
             {aiLoading && (
-              <div className="ai-status">⏳ Analisando com Gemini 2.5 Flash...</div>
+              <div className="ai-status">⏳ Analisando com gemini-3.8-flash...</div>
             )}
             {aiError && (
               <div className="ai-status error">
