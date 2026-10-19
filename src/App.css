@@ -592,7 +592,7 @@ body {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   width: 100%;
-  max-width: 540px;
+  max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
   border-radius: 14px;
@@ -763,7 +763,7 @@ body {
   color: #ffffff;
 }
 
-/* AI MODAL & SETTINGS MODAL */
+/* AI MODAL, MARKDOWN CLEAN UI & CARDS INTELIGENTES DE VÍNCULO */
 .ai-modal-header {
   margin-bottom: 16px;
 }
@@ -867,9 +867,9 @@ body {
 .ai-status,
 .ai-result {
   margin-top: 16px;
-  padding: 12px;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  padding: 16px;
+  border-radius: 10px;
+  font-size: 0.92rem;
 }
 
 .ai-status {
@@ -885,10 +885,139 @@ body {
 .ai-result {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  white-space: pre-wrap;
-  max-height: clamp(200px, 42vh, 380px);
+  max-height: clamp(220px, 45vh, 420px);
   overflow-y: auto;
-  line-height: 1.6;
+  line-height: 1.65;
+}
+
+/* CLEAN UI MARKDOWN TYPOGRAPHY */
+.ai-markdown-body h1,
+.ai-markdown-body h2,
+.ai-markdown-body h3 {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 12px 0 6px;
+}
+
+.ai-markdown-body h1:first-child,
+.ai-markdown-body h2:first-child,
+.ai-markdown-body h3:first-child {
+  margin-top: 0;
+}
+
+.ai-markdown-body p {
+  margin-bottom: 10px;
+  color: var(--text-main);
+}
+
+.ai-markdown-body ul,
+.ai-markdown-body ol {
+  padding-left: 20px;
+  margin-bottom: 10px;
+}
+
+.ai-markdown-body li {
+  margin-bottom: 6px;
+}
+
+.ai-markdown-body strong {
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+.ia-report-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.78rem;
+  color: #10b981;
+}
+
+/* INTELIGÊNCIA DE VÍNCULO DE COLEÇÃO */
+.collection-match-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(21, 25, 34, 0.9));
+  border: 1px solid #10b981;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.collection-match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.btn-save-card-story {
+  background-color: #10b981;
+  color: #080a0e;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.btn-save-card-story:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.recommendation-card {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(21, 25, 34, 0.95));
+  border: 2px solid var(--accent-gold);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.light-theme .recommendation-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), #ffffff);
+}
+
+.wishlist-badge {
+  align-self: flex-start;
+  background-color: var(--accent-gold);
+  color: #0c0e12;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.recommendation-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--accent-gold);
+}
+
+.recommendation-desc {
+  font-size: 0.86rem;
+  color: var(--text-main);
 }
 
 .about-header {

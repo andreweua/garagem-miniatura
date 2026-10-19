@@ -1,7 +1,7 @@
 {
   "name": "garagem-miniatura",
   "private": true,
-  "version": "2.4.5",
+  "version": "2.4.6",
   "type": "module",
   "description": "PWA e App Multiplataforma - Catálogo interativo e curadoria de veículos em miniatura com IA (PereiraLabs)",
   "scripts": {
@@ -16,10 +16,12 @@
     "@capacitor/core": "^7.0.0",
     "@google/genai": "^2.30.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.0.0",
+    "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

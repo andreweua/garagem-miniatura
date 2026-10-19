@@ -43,3 +43,13 @@ export interface SearchLogEntry {
   timestamp: string;
   type: 'busca' | 'ia-scanner';
 }
+
+export interface IaReportEntry {
+  id: string;
+  filePath: string;
+  createdAt: string;
+  matchedCarId: number | null;
+  isNewAcquisition: boolean;
+  detectedVehicleName: string;
+  cleanMarkdown: string;
+}

@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { App as CapacitorApp } from '@capacitor/app';
 import { GoogleGenAI } from '@google/genai';
 import pkg from '../package.json';
@@ -8,7 +9,8 @@ import type {
   CarCategory,
   ReactionsMap,
   StoriesMap,
-  SearchLogEntry
+  SearchLogEntry,
+  IaReportEntry
 } from './types/car';
 import './App.css';
 
@@ -53,6 +55,80 @@ function loadSearchLogs(): SearchLogEntry[] {
   }
 }
 
+function loadIaReports(): IaReportEntry[] {
+  try {
+    const raw = localStorage.getItem('garagem_ia_reports');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 1. Formatação Amigável (Clean UI):
+ * Remove blocos de código brutos (```...```) e limpa artefatos de formatação
+ * para renderização elegante via react-markdown.
+ */
+function cleanAiMarkdownText(raw: string): string {
+  return raw
+    .replace(/```(?:markdown|json|text|html)?\s*([\s\S]*?)```/gi, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * 3. Inteligência de Vínculo de Coleção:
+ * Detecta se o veículo retornado pela IA já existe no acervo de 105 carros
+ * ou se é uma recomendação de nova compra.
+ */
+function analyzeCollectionLink(cleanText: string): {
+  matchedCar: CarItem | null;
+  isNewAcquisition: boolean;
+  detectedName: string;
+} {
+  const lower = cleanText.toLowerCase();
+  const explicitlyNotInCollection =
+    lower.includes('possível nova aquisição') ||
+    lower.includes('possivel nova aquisicao') ||
+    lower.includes('não existe na lista') ||
+    lower.includes('nao existe na lista') ||
+    lower.includes('não consta no acervo') ||
+    lower.includes('sugestão de próxima compra');
+
+  // Tenta extrair o nome do modelo identificado na primeira seção
+  const nameMatch =
+    cleanText.match(/(?:Marca|Modelo|Ve[íi]culo)[^:\n]*:\s*\**([^\n*]+)/i) ||
+    cleanText.match(/1\.\s*\**([^\n*]+)/);
+  const detectedName = nameMatch ? nameMatch[1].trim() : 'Veículo Analisado pela IA';
+
+  if (!explicitlyNotInCollection) {
+    // 1º: Procura referência explícita #ID na conclusão de existência
+    const idMatches = [...cleanText.matchAll(/#(\d{1,3})\b/g)];
+    if (idMatches.length > 0) {
+      const firstId = Number(idMatches[0][1]);
+      const byId = CARS_DATA.find((c) => c.id === firstId);
+      if (byId) {
+        return { matchedCar: byId, isNewAcquisition: false, detectedName };
+      }
+    }
+
+    // 2º: Procura correspondência por marca + modelo no texto
+    const byBrandModel = CARS_DATA.find((c) => {
+      if (c.modelo.includes('Modelo a Identificar')) return false;
+      const brandLower = c.marca.toLowerCase();
+      const modelLower = c.modelo.toLowerCase();
+      return lower.includes(brandLower) && lower.includes(modelLower);
+    });
+
+    if (byBrandModel) {
+      return { matchedCar: byBrandModel, isNewAcquisition: false, detectedName };
+    }
+  }
+
+  return { matchedCar: null, isNewAcquisition: true, detectedName };
+}
+
 function CarImage({ car, className }: { car: CarItem; className?: string }) {
   const [failed, setFailed] = useState(false);
   const hasDirectPhoto = Boolean(car.foto && car.foto.trim() !== '');
@@ -82,7 +158,6 @@ function CarImage({ car, className }: { car: CarItem; className?: string }) {
 }
 
 export default function App() {
-  // 1. Estado de Tema Claro/Escuro persistido no localStorage e injetado no body
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('garagem_theme');
     return saved === 'light' ? 'light' : 'dark';
@@ -93,6 +168,7 @@ export default function App() {
   const [reactions, setReactions] = useState<ReactionsMap>(loadReactions);
   const [stories, setStories] = useState<StoriesMap>(loadStories);
   const [searchLogs, setSearchLogs] = useState<SearchLogEntry[]>(loadSearchLogs);
+  const [iaReports, setIaReports] = useState<IaReportEntry[]>(loadIaReports);
   const [storyDraft, setStoryDraft] = useState('');
   const [openDislikeId, setOpenDislikeId] = useState<number | null>(null);
   const [dislikeDrafts, setDislikeDrafts] = useState<Record<number, string>>({});
@@ -113,8 +189,8 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<string | null>(null);
+  const [lastSavedReport, setLastSavedReport] = useState<IaReportEntry | null>(null);
 
-  // Sincroniza classe do tema no body e salva no localStorage
   useEffect(() => {
     document.body.classList.remove('light-theme', 'dark-theme');
     document.body.classList.add(theme === 'light' ? 'light-theme' : 'dark-theme');
@@ -149,14 +225,20 @@ export default function App() {
     }
   }, [searchLogs]);
 
-  // Atualiza rascunho da história ao abrir modal de um carrinho
+  useEffect(() => {
+    try {
+      localStorage.setItem('garagem_ia_reports', JSON.stringify(iaReports));
+    } catch {
+      // ignore storage errors
+    }
+  }, [iaReports]);
+
   useEffect(() => {
     if (selectedCar) {
       setStoryDraft(stories[selectedCar.id]?.story || '');
     }
   }, [selectedCar, stories]);
 
-  // Registra buscas relevantes no histórico local
   useEffect(() => {
     const trimmed = searchQuery.trim();
     if (trimmed.length < 2) return;
@@ -174,7 +256,6 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [searchQuery, categoryFilter]);
 
-  // Suporte ao botão voltar físico no Android (Capacitor) e tecla Escape na Web
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -234,7 +315,12 @@ export default function App() {
     ).slice(0, 6);
   }, [selectedCar]);
 
-  // 4. Navegação inteligente: rola até o card da miniatura e abre o modal correspondente
+  // Análise de vínculo da resposta atual da IA
+  const aiLinkAnalysis = useMemo(() => {
+    if (!aiResult) return null;
+    return analyzeCollectionLink(aiResult);
+  }, [aiResult]);
+
   const navigateToCarById = (carId: number) => {
     const targetCar = CARS_DATA.find((c) => c.id === carId);
     if (!targetCar) return;
@@ -243,7 +329,6 @@ export default function App() {
     setSettingsModalOpen(false);
     setAboutModalOpen(false);
 
-    // Garante que o filtro exiba o carro caso esteja filtrado
     setSearchQuery('');
     setCategoryFilter('todos');
 
@@ -258,7 +343,7 @@ export default function App() {
     }, 120);
   };
 
-  // Transforma referências como "#1 . Mercedes-Benz 500SL" ou "#1" em links clicáveis
+  // Transforma referências como "#1 . Mercedes-Benz 500SL" ou "#1" em botões clicáveis
   const renderFormattedWithCarLinks = (text: string) => {
     const regex = /#(\d{1,3})(?:\s*[.\-–—:]\s*([^\n,;()]+))?/g;
     const parts: React.ReactNode[] = [];
@@ -301,6 +386,16 @@ export default function App() {
     return parts;
   };
 
+  // Processa filhos do ReactMarkdown para tornar "#ID . Marca Modelo" clicáveis
+  const processMarkdownChildren = (children: React.ReactNode): React.ReactNode => {
+    return React.Children.map(children, (child) => {
+      if (typeof child === 'string' && child.includes('#')) {
+        return renderFormattedWithCarLinks(child);
+      }
+      return child;
+    });
+  };
+
   const handleVote = (carId: number, type: 'like' | 'dislike', comment = '') => {
     setReactions((prev) => {
       const current = prev[carId] || { likes: 0, dislikes: 0, userChoice: null, comment: '' };
@@ -332,10 +427,10 @@ export default function App() {
     });
   };
 
-  const handleSaveStory = (car: CarItem) => {
-    const trimmed = storyDraft.trim();
+  const handleSaveStory = (car: CarItem, customStoryText?: string) => {
+    const textToSave = (customStoryText ?? storyDraft).trim();
     setStories((prev) => {
-      if (!trimmed) {
+      if (!textToSave) {
         const copy = { ...prev };
         delete copy[car.id];
         return copy;
@@ -346,15 +441,95 @@ export default function App() {
           carId: car.id,
           marca: car.marca,
           modelo: car.modelo,
-          story: trimmed,
+          story: textToSave,
           updatedAt: new Date().toISOString()
         }
       };
     });
-    alert(`História da miniatura #${car.id} (${car.marca} ${car.modelo}) salva localmente!`);
+    alert(`✅ História salva no card #${car.id} (${car.marca} ${car.modelo})!`);
   };
 
-  // 5. Gera compilado (.txt / .json) e abre e-mail para o desenvolvedor
+  // 2. Salva relatório da IA automaticamente em src/data/ia_reports/
+  const persistIaReportToProjectFolder = async (
+    cleanMarkdown: string,
+    analysis: { matchedCar: CarItem | null; isNewAcquisition: boolean; detectedName: string }
+  ) => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const slug = (
+      analysis.matchedCar
+        ? `car-${analysis.matchedCar.id}-${analysis.matchedCar.marca}`
+        : analysis.detectedName
+    )
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 32);
+
+    const filename = `report-${timestamp}-${slug || 'veiculo'}.json`;
+    const filePath = `src/data/ia_reports/${filename}`;
+
+    const entry: IaReportEntry = {
+      id: `${Date.now()}`,
+      filePath,
+      createdAt: new Date().toISOString(),
+      matchedCarId: analysis.matchedCar?.id ?? null,
+      isNewAcquisition: analysis.isNewAcquisition,
+      detectedVehicleName: analysis.matchedCar
+        ? `#${analysis.matchedCar.id} ${analysis.matchedCar.marca} ${analysis.matchedCar.modelo}`
+        : analysis.detectedName,
+      cleanMarkdown
+    };
+
+    setIaReports((prev) => [entry, ...prev]);
+    setLastSavedReport(entry);
+
+    // Envia para o middleware de escrita física em src/data/ia_reports/ quando rodando localmente
+    try {
+      await fetch('/__save_ia_report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename,
+          content: entry
+        })
+      });
+    } catch {
+      // Em produção estática (GitHub Pages), permanece salvo em garagem_ia_reports (localStorage)
+    }
+  };
+
+  const handleDownloadIaReport = (report: IaReportEntry, ext: 'json' | 'txt' = 'txt') => {
+    const content =
+      ext === 'json'
+        ? JSON.stringify(report, null, 2)
+        : [
+            `RELATÓRIO IA SCANNER - GARAGEM EM MINIATURA (v${pkg.version})`,
+            `Arquivo de Destino: ${report.filePath.replace(/\.json$/, '.txt')}`,
+            `Data: ${new Date(report.createdAt).toLocaleString('pt-BR')}`,
+            `Veículo: ${report.detectedVehicleName}`,
+            `Status no Acervo: ${
+              report.isNewAcquisition
+                ? 'Sugestão de Próxima Compra para o Acervo'
+                : `Existente no Catálogo (#${report.matchedCarId})`
+            }`,
+            `------------------------------------------------------------`,
+            report.cleanMarkdown
+          ].join('\n');
+
+    const blob = new Blob([content], {
+      type: ext === 'json' ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const baseName = report.filePath.split('/').pop()?.replace(/\.json$/, '') || 'ia-report';
+    link.download = `${baseName}.${ext}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleSendCopyToDeveloper = (mode: 'file-and-email' | 'json-only' = 'file-and-email') => {
     const editedStories = Object.values(stories);
     const votedItems = Object.entries(reactions)
@@ -373,6 +548,8 @@ export default function App() {
       version: `v${pkg.version}`,
       generatedAt: new Date().toISOString(),
       editedStories,
+      iaReportsDirectory: 'src/data/ia_reports/',
+      iaReports,
       reactions: votedItems,
       recentSearches: searchLogs
     };
@@ -395,7 +572,20 @@ export default function App() {
             )
             .join('\n\n'),
       ``,
-      `2. REAÇÕES E COMENTÁRIOS (${votedItems.length}):`,
+      `2. RELATÓRIOS IA SALVOS EM src/data/ia_reports/ (${iaReports.length}):`,
+      iaReports.length === 0
+        ? 'Nenhum relatório IA gerado.'
+        : iaReports
+            .map(
+              (r) =>
+                `- [${r.filePath}] ${r.detectedVehicleName}:\n  ${r.cleanMarkdown.replace(
+                  /\n/g,
+                  '\n  '
+                )}`
+            )
+            .join('\n\n'),
+      ``,
+      `3. REAÇÕES E COMENTÁRIOS (${votedItems.length}):`,
       votedItems.length === 0
         ? 'Nenhuma reação registrada.'
         : votedItems
@@ -407,7 +597,7 @@ export default function App() {
             )
             .join('\n'),
       ``,
-      `3. HISTÓRICO DE PESQUISAS E SCANNER IA (${searchLogs.length}):`,
+      `4. HISTÓRICO DE PESQUISAS E SCANNER IA (${searchLogs.length}):`,
       searchLogs.length === 0
         ? 'Nenhuma pesquisa registrada.'
         : searchLogs
@@ -420,7 +610,6 @@ export default function App() {
             .join('\n')
     ].join('\n');
 
-    // Download automático do arquivo compilado
     const isJson = mode === 'json-only';
     const blob = new Blob([isJson ? JSON.stringify(compiledData, null, 2) : txtLines], {
       type: isJson ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8'
@@ -487,6 +676,7 @@ export default function App() {
       setSelectedImageBase64(fullBase64.split(',')[1] || null);
       setAiResult(null);
       setAiError(null);
+      setLastSavedReport(null);
     };
     reader.readAsDataURL(file);
   };
@@ -509,6 +699,7 @@ export default function App() {
     setAiLoading(true);
     setAiError(null);
     setAiResult(null);
+    setLastSavedReport(null);
 
     setSearchLogs((prev) => [
       {
@@ -524,9 +715,10 @@ export default function App() {
 Analise detalhadamente a foto desta miniatura e compare com a lista dos ${CARS_DATA.length} veículos deste acervo:
 ${CARS_DATA.map((c) => `#${c.id} . ${c.marca} ${c.modelo} (${c.ano})`).join('; ')}
 
-Responda em português de forma clara e estruturada:
-1. Marca, Modelo e Categoria mais prováveis do veículo na foto.
-2. Este modelo já existe na lista acima? Se sim, cite no formato exato "#ID . Marca Modelo" (ex.: "#1 . Mercedes-Benz 500 SL"). Se não existir, declare como 'Possível Nova Aquisição' e liste até 3 miniaturas similares do acervo usando também o formato "#ID . Marca Modelo".`;
+Responda em português usando Markdown limpo (sem blocos de código \`\`\`), estruturado em:
+- **Veículo Identificado:** Marca, Modelo, Ano aproximado e Categoria.
+- **História e Curiosidades:** Breve histórico automotivo do modelo real e detalhes da miniatura.
+- **Status no Acervo:** Se já existir na lista acima, cite no formato exato "#ID . Marca Modelo" (ex.: "#1 . Mercedes-Benz 500 SL"). Se não existir no catálogo, escreva explicitamente "Possível Nova Aquisição" e liste até 2 modelos similares do acervo usando "#ID . Marca Modelo".`;
 
     try {
       const ai = new GoogleGenAI({ apiKey: key });
@@ -551,14 +743,19 @@ Responda em português de forma clara e estruturada:
         output_text?: string;
         outputs?: Array<{ type?: string; text?: string }>;
       };
-      const textoResposta =
+      const rawResponse =
         interactionRecord.output_text ||
         interactionRecord.outputs?.find((o) => o.type === 'text')?.text;
 
-      if (!textoResposta) {
+      if (!rawResponse) {
         throw new Error('A IA não gerou candidatos de resposta.');
       }
-      setAiResult(textoResposta);
+
+      const cleanedMarkdown = cleanAiMarkdownText(rawResponse);
+      setAiResult(cleanedMarkdown);
+
+      const linkAnalysis = analyzeCollectionLink(cleanedMarkdown);
+      await persistIaReportToProjectFolder(cleanedMarkdown, linkAnalysis);
     } catch (err) {
       setAiError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -858,7 +1055,6 @@ Responda em português de forma clara e estruturada:
                 <strong>{selectedCar.fabricante}</strong>
               </div>
 
-              {/* 5. Persistência de História Editável e Envio */}
               <div className="story-section">
                 <h3>📖 História / Descrição da Miniatura</h3>
                 <textarea
@@ -867,9 +1063,16 @@ Responda em português de forma clara e estruturada:
                   value={storyDraft}
                   onChange={(e) => setStoryDraft(e.target.value)}
                 />
-                {storyDraft.includes('#') && (
-                  <div style={{ marginTop: '6px', fontSize: '0.82rem' }}>
-                    {renderFormattedWithCarLinks(storyDraft)}
+                {storyDraft.trim() && (
+                  <div className="ai-result ai-markdown-body" style={{ marginTop: '8px' }}>
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p>{processMarkdownChildren(children)}</p>,
+                        li: ({ children }) => <li>{processMarkdownChildren(children)}</li>
+                      }}
+                    >
+                      {storyDraft}
+                    </ReactMarkdown>
                   </div>
                 )}
                 <div className="story-actions">
@@ -890,7 +1093,6 @@ Responda em português de forma clara e estruturada:
                 </div>
               </div>
 
-              {/* 4. Links Clicáveis para Miniaturas Similares */}
               {similarCars.length > 0 && (
                 <div className="similar-section">
                   <h3>🔗 Miniaturas Similares no Acervo</h3>
@@ -913,7 +1115,7 @@ Responda em português de forma clara e estruturada:
         </div>
       )}
 
-      {/* MODAL DA IA (SEM INPUT DE CHAVE DIRETO - USA CONFIGURAÇÕES) */}
+      {/* MODAL DA IA (CLEAN UI MARKDOWN + SALVAMENTO EM PASTA + VÍNCULO DE COLEÇÃO) */}
       {aiModalOpen && (
         <div className="modal-overlay" onClick={() => setAiModalOpen(false)}>
           <div
@@ -991,14 +1193,95 @@ Responda em português de forma clara e estruturada:
                 {aiError}
               </div>
             )}
+
             {aiResult && (
-              <div className="ai-result">{renderFormattedWithCarLinks(aiResult)}</div>
+              <>
+                {/* 1. Formatação Amigável (Clean UI) com ReactMarkdown */}
+                <div className="ai-result ai-markdown-body">
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p>{processMarkdownChildren(children)}</p>,
+                      li: ({ children }) => <li>{processMarkdownChildren(children)}</li>
+                    }}
+                  >
+                    {aiResult}
+                  </ReactMarkdown>
+                </div>
+
+                {/* 2. Confirmação de Salvamento em src/data/ia_reports/ */}
+                {lastSavedReport && (
+                  <div className="ia-report-meta">
+                    <span>
+                      📁 Salvo em: <code>{lastSavedReport.filePath}</code>
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-mini btn-mini-cancel"
+                      onClick={() => handleDownloadIaReport(lastSavedReport, 'txt')}
+                    >
+                      ⬇️ Baixar .txt
+                    </button>
+                  </div>
+                )}
+
+                {/* 3. Inteligência de Vínculo de Coleção */}
+                {aiLinkAnalysis?.matchedCar ? (
+                  <div className="collection-match-card">
+                    <div className="collection-match-header">
+                      <span>
+                        ✅ Veículo identificado no acervo: #
+                        {aiLinkAnalysis.matchedCar.id} .{' '}
+                        {aiLinkAnalysis.matchedCar.marca}{' '}
+                        {aiLinkAnalysis.matchedCar.modelo}
+                      </span>
+                    </div>
+                    {!stories[aiLinkAnalysis.matchedCar.id]?.story ? (
+                      <button
+                        type="button"
+                        className="btn-save-card-story"
+                        onClick={() => {
+                          const target = aiLinkAnalysis.matchedCar!;
+                          handleSaveStory(target, aiResult);
+                          navigateToCarById(target.id);
+                        }}
+                      >
+                        💾 Salvar História no Card do Veículo
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-save-card-story"
+                        onClick={() => {
+                          const target = aiLinkAnalysis.matchedCar!;
+                          handleSaveStory(target, aiResult);
+                          navigateToCarById(target.id);
+                        }}
+                      >
+                        🔄 Salvar História no Card do Veículo (Atualizar)
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="recommendation-card">
+                    <span className="wishlist-badge">🌟 Lista de Desejos • Inédito</span>
+                    <div className="recommendation-title">
+                      Sugestão de Próxima Compra para o Acervo
+                    </div>
+                    <p className="recommendation-desc">
+                      Este modelo ({aiLinkAnalysis?.detectedName || 'analisado'}) ainda não
+                      consta entre os {CARS_DATA.length} carrinhos catalogados e foi
+                      registrado no histórico de relatórios (
+                      <code>src/data/ia_reports/</code>) como recomendação de aquisição.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       )}
 
-      {/* 2. MODAL DE CONFIGURAÇÕES (CHAVE DE API INTELIGENTE + EXPORTAÇÃO) */}
+      {/* MODAL DE CONFIGURAÇÕES */}
       {settingsModalOpen && (
         <div className="modal-overlay" onClick={() => setSettingsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1037,8 +1320,8 @@ Responda em português de forma clara e estruturada:
                 <h3>📤 Exportação e Envio para o Desenvolvedor</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
                   Gere um arquivo estruturado com todas as histórias editadas (
-                  {Object.keys(stories).length}) e pesquisas realizadas ({searchLogs.length})
-                  ou envie por e-mail para análise.
+                  {Object.keys(stories).length}), relatórios IA ({iaReports.length}) e
+                  pesquisas realizadas ({searchLogs.length}) ou envie por e-mail para análise.
                 </p>
                 <div className="story-actions">
                   <button
