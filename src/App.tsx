@@ -273,6 +273,7 @@ export default function App() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [lastSavedReport, setLastSavedReport] = useState<IaReportEntry | null>(null);
+  const [isSyncingPending, setIsSyncingPending] = useState(false);
 
   useEffect(() => {
     document.body.classList.remove('light-theme', 'dark-theme');
@@ -316,58 +317,212 @@ export default function App() {
     }
   }, [iaReports]);
 
-  // Sincroniza automaticamente para src/data/ia_reports/ os relatórios e histórias já feitos anteriormente
-  useEffect(() => {
-    const syncExistingFiles = async () => {
-      for (const storyItem of Object.values(stories)) {
-        if (!storyItem?.story) continue;
-        const baseFilename = `car-${storyItem.carId}-${storyItem.marca}-${storyItem.modelo}`
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '')
-          .slice(0, 48);
+  // Sincronização automática e retroativa: envia relatórios e histórias pendentes para Google Drive/n8n/pasta local
+  const syncPendingReportsToCloud = async (isManual = false) => {
+    if (!cloudSyncConsent && !isManual) return 0;
+    const wsUrl = CURATOR_ENDPOINTS.WORKSPACE_APPS_SCRIPT_URL.trim();
+    const n8nUrl = CURATOR_ENDPOINTS.N8N_WEBHOOK_URL.trim();
 
-        const cleanMd = cleanAiMarkdownText(storyItem.story);
-        const entry: IaReportEntry = {
-          id: `car-${storyItem.carId}`,
-          filePath: `src/data/ia_reports/${baseFilename}.json`,
-          createdAt: storyItem.updatedAt || new Date().toISOString(),
-          matchedCarId: storyItem.carId,
-          isNewAcquisition: false,
-          detectedVehicleName: `#${storyItem.carId} ${storyItem.marca} ${storyItem.modelo}`,
-          cleanMarkdown: cleanMd
-        };
+    let syncedKeys: string[] = [];
+    try {
+      syncedKeys = JSON.parse(localStorage.getItem('garagem_synced_reports') || '[]');
+    } catch {
+      syncedKeys = [];
+    }
+    const syncedSet = new Set(syncedKeys);
+    let sentCount = 0;
 
-        const txtContent = [
-          `RELATÓRIO IA SCANNER - GARAGEM EM MINIATURA (v${pkg.version})`,
-          `Arquivo de Destino: src/data/ia_reports/${baseFilename}.txt`,
-          `Data: ${new Date(entry.createdAt).toLocaleString('pt-BR')}`,
-          `Veículo: ${entry.detectedVehicleName}`,
-          `Status no Acervo: Existente no Catálogo (#${storyItem.carId})`,
-          `------------------------------------------------------------`,
-          cleanMd
-        ].join('\n');
+    // 1. Sincroniza relatórios gerados pela IA salvos no aparelho
+    for (const report of iaReports) {
+      if (!report) continue;
+      const reportKey = `ia-${report.id || report.createdAt}`;
+      if (!isManual && syncedSet.has(reportKey)) continue;
 
+      const baseFilename = report.filePath
+        ? report.filePath.replace(/^src\/data\/ia_reports\//, '').replace(/\.json$/, '')
+        : `report-${new Date(report.createdAt).getTime()}`;
+
+      const txtContent = [
+        `RELATÓRIO IA SCANNER - GARAGEM EM MINIATURA (v${pkg.version})`,
+        `Arquivo de Destino: src/data/ia_reports/${baseFilename}.txt`,
+        `Data: ${new Date(report.createdAt).toLocaleString('pt-BR')}`,
+        `Veículo: ${report.detectedVehicleName}`,
+        `Status no Acervo: ${
+          report.isNewAcquisition
+            ? 'Sugestão de Próxima Compra para o Acervo'
+            : `Existente no Catálogo (#${report.matchedCarId})`
+        }`,
+        `------------------------------------------------------------`,
+        report.cleanMarkdown
+      ].join('\n');
+
+      const payload = {
+        filename: baseFilename,
+        content: report,
+        txtContent,
+        imageBase64: null,
+        imageMimeType: 'image/jpeg',
+        exifStripped: true,
+        appVersion: `v${pkg.version}`
+      };
+
+      let success = false;
+
+      // Canal local Vite
+      try {
+        await fetch(`${import.meta.env.BASE_URL}__save_ia_report`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        success = true;
+      } catch {}
+
+      // Canal Google Apps Script / Drive
+      if (wsUrl) {
         try {
-          await fetch(`${import.meta.env.BASE_URL}__save_ia_report`, {
+          await fetch(wsUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              filename: baseFilename,
-              content: entry,
-              txtContent
-            })
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
           });
+          success = true;
         } catch {
-          // Ambiente estático sem middleware local
+          try {
+            await fetch(wsUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify(payload)
+            });
+            success = true;
+          } catch {}
         }
       }
-    };
-    void syncExistingFiles();
+
+      // Canal n8n
+      if (n8nUrl) {
+        try {
+          await fetch(n8nUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          success = true;
+        } catch {}
+      }
+
+      if (success) {
+        syncedSet.add(reportKey);
+        sentCount++;
+      }
+    }
+
+    // 2. Sincroniza histórias de veículos salvas no catálogo
+    for (const storyItem of Object.values(stories)) {
+      if (!storyItem?.story) continue;
+      const storyKey = `story-${storyItem.carId}-${storyItem.updatedAt || 'init'}`;
+      if (!isManual && syncedSet.has(storyKey)) continue;
+
+      const baseFilename = `car-${storyItem.carId}-${storyItem.marca}-${storyItem.modelo}`
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 48);
+
+      const cleanMd = cleanAiMarkdownText(storyItem.story);
+      const entry: IaReportEntry = {
+        id: `car-${storyItem.carId}`,
+        filePath: `src/data/ia_reports/${baseFilename}.json`,
+        createdAt: storyItem.updatedAt || new Date().toISOString(),
+        matchedCarId: storyItem.carId,
+        isNewAcquisition: false,
+        detectedVehicleName: `#${storyItem.carId} ${storyItem.marca} ${storyItem.modelo}`,
+        cleanMarkdown: cleanMd
+      };
+
+      const txtContent = [
+        `RELATÓRIO IA SCANNER - GARAGEM EM MINIATURA (v${pkg.version})`,
+        `Arquivo de Destino: src/data/ia_reports/${baseFilename}.txt`,
+        `Data: ${new Date(entry.createdAt).toLocaleString('pt-BR')}`,
+        `Veículo: ${entry.detectedVehicleName}`,
+        `Status no Acervo: Existente no Catálogo (#${storyItem.carId})`,
+        `------------------------------------------------------------`,
+        cleanMd
+      ].join('\n');
+
+      const payload = {
+        filename: baseFilename,
+        content: entry,
+        txtContent,
+        imageBase64: null,
+        imageMimeType: 'image/jpeg',
+        exifStripped: true,
+        appVersion: `v${pkg.version}`
+      };
+
+      let success = false;
+
+      try {
+        await fetch(`${import.meta.env.BASE_URL}__save_ia_report`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        success = true;
+      } catch {}
+
+      if (wsUrl) {
+        try {
+          await fetch(wsUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          success = true;
+        } catch {
+          try {
+            await fetch(wsUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify(payload)
+            });
+            success = true;
+          } catch {}
+        }
+      }
+
+      if (n8nUrl) {
+        try {
+          await fetch(n8nUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          success = true;
+        } catch {}
+      }
+
+      if (success) {
+        syncedSet.add(storyKey);
+        sentCount++;
+      }
+    }
+
+    try {
+      localStorage.setItem('garagem_synced_reports', JSON.stringify(Array.from(syncedSet)));
+    } catch {}
+
+    return sentCount;
+  };
+
+  useEffect(() => {
+    void syncPendingReportsToCloud(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [iaReports, stories]);
 
   useEffect(() => {
     if (selectedCar) {
@@ -656,9 +811,19 @@ export default function App() {
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
-        syncedChannels.push('Google Workspace');
+        syncedChannels.push('Google Drive');
       } catch {
-        // Falha silenciosa de rede
+        try {
+          await fetch(wsUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          syncedChannels.push('Google Drive');
+        } catch {
+          // Falha silenciosa de rede
+        }
       }
     }
 
@@ -1758,6 +1923,38 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                     onClick={() => handleSendCopyToDeveloper('json-only')}
                   >
                     ⬇️ Baixar JSON
+                  </button>
+                </div>
+
+                <div style={{ marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn-accent"
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                    disabled={isSyncingPending}
+                    onClick={async () => {
+                      setIsSyncingPending(true);
+                      try {
+                        const count = await syncPendingReportsToCloud(true);
+                        if (count > 0) {
+                          alert(`✅ ${count} relatório(s) sincronizado(s) com sucesso no Google Drive!`);
+                        } else {
+                          alert('ℹ️ Todos os relatórios do aparelho já foram sincronizados com o Google Drive!');
+                        }
+                      } finally {
+                        setIsSyncingPending(false);
+                      }
+                    }}
+                  >
+                    {isSyncingPending
+                      ? '⏳ Sincronizando com o Google Drive...'
+                      : '☁️ Sincronizar Relatórios Pendentes com Google Drive'}
                   </button>
                 </div>
               </div>

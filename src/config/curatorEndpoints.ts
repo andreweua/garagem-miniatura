@@ -18,7 +18,8 @@ export const CURATOR_ENDPOINTS = {
    * (Executar como: "Eu" | Acesso: "Qualquer pessoa") e colar a URL fixa aqui:
    */
   WORKSPACE_APPS_SCRIPT_URL:
-    (import.meta.env.VITE_WORKSPACE_WEBHOOK_URL as string | undefined) || '',
+    (import.meta.env.VITE_WORKSPACE_WEBHOOK_URL as string | undefined) ||
+    'https://script.google.com/macros/s/AKfycbyjOxCwldjlakUXFuL6bLGQDwtelLfyaEZoS4Hko4sQCdi4oAKJYg3Aoqpgl0R7ouf7ZA/exec',
 
   /**
    * 2. N8N WEBHOOK URL (Automação direta via n8n)
