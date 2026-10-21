@@ -18,6 +18,7 @@ export interface CarItem {
   foto: string;
   precoCompra?: string;
   escala?: string;
+  historia?: string;
 }
 
 export interface CarReaction {

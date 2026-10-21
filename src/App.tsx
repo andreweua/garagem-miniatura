@@ -527,7 +527,10 @@ export default function App() {
   useEffect(() => {
     if (selectedCar) {
       const savedOrPending =
-        stories[selectedCar.id]?.story || pendingAiStories[selectedCar.id] || '';
+        stories[selectedCar.id]?.story ||
+        pendingAiStories[selectedCar.id] ||
+        selectedCar.historia ||
+        '';
       setStoryDraft(savedOrPending ? cleanAiMarkdownText(savedOrPending) : '');
       setIsEditingStory(false);
     }
@@ -588,7 +591,7 @@ export default function App() {
   const filteredCars = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return CARS_DATA.filter((car) => {
-      const carStory = stories[car.id]?.story?.toLowerCase() || '';
+      const carStory = (stories[car.id]?.story || car.historia || '').toLowerCase();
       const matchText =
         car.modelo.toLowerCase().includes(q) ||
         car.marca.toLowerCase().includes(q) ||
@@ -1376,7 +1379,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                     userChoice: null,
                     comment: ''
                   };
-                  const carStory = stories[car.id]?.story;
+                  const carStory = stories[car.id]?.story || car.historia;
                   const isDislikeBoxOpen = openDislikeId === car.id;
 
                   return (
@@ -1576,10 +1579,10 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                       </ReactMarkdown>
                     </div>
                     <div className="ia-report-meta" style={{ marginTop: '8px' }}>
-                      {stories[selectedCar.id]?.story === storyDraft.trim() ? (
+                      {stories[selectedCar.id]?.story === storyDraft.trim() ||
+                      (!stories[selectedCar.id]?.story && selectedCar.historia === storyDraft.trim()) ? (
                         <span>
-                          ✅ Salvo no card #{selectedCar.id} e enviado para{' '}
-                          <code>src/data/ia_reports/</code>
+                          ✅ História gravada no card #{selectedCar.id}
                         </span>
                       ) : (
                         <span>
