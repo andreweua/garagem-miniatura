@@ -39,6 +39,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Configure Android SDK local.properties
+        run: |
+          SDK_PATH="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          if [ -z "$SDK_PATH" ]; then
+            SDK_PATH="/usr/local/lib/android/sdk"
+          fi
+          echo "sdk.dir=$SDK_PATH" > android/local.properties
+          echo "Configured local.properties:"
+          cat android/local.properties
+
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -57,8 +67,19 @@ jobs:
       - name: Build Android Debug APK
         working-directory: android
         run: |
+          set -o pipefail
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tee ../build_output.log
+
+      - name: Publish Build Log Summary
+        if: always()
+        run: |
+          if [ -f build_output.log ]; then
+            echo "### 📋 Log de Compilação do Gradle" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 120 build_output.log >> $GITHUB_STEP_SUMMARY || true
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
