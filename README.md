@@ -143,16 +143,30 @@ npm run build:ios
 
 ---
 
-## 📝 Histórico de Versões
+## 📝 Histórico Completo de Versões e Evolução do Projeto
 
+### 🚀 Ciclo Multiplataforma Nativo & Live Over-The-Air (v2.6 – v2.7)
 * **v2.7.0:** Inicialização da plataforma nativa **iOS** (`ios/App.xcworkspace`, `Info.plist` com autorizações da Apple e `AppIcon` 1024x1024 preservado), esteira CI/CD em servidores Mac virtuais (`build-ios.yml`), e ativação da arquitetura **Live Over-The-Air (OTA)** para atualização contínua pelo ar via GitHub Pages.
 * **v2.6.0:** Inicialização da plataforma nativa **Android** via Capacitor 7, preservação de 100% dos ícones originais (todas as densidades mipmap), permissões de câmera/galeria no `AndroidManifest.xml` e pipeline CI/CD no GitHub Actions (`build-apk.yml`) compilando `.apk` automaticamente com JDK 21 e Gradle 8.11.1.
+
+### 🛡️ Ciclo de Curadoria em Nuvem & Privacidade (v2.5)
 * **v2.5.4:** Campo `historia` nativo no catálogo `src/data/cars.ts`, permitindo fixar as histórias da IA diretamente no banco de dados para todos os usuários sem depender de armazenamento local.
 * **v2.5.3:** Conexão oficial do Webhook do Google Apps Script com envio de e-mail e fotos anexadas, além da rotina de auto-sincronização retroativa de relatórios pendentes.
 * **v2.5.2:** Criação da Skill oficial do Antigravity `.agents/skills/curadoria-acervo-garagem/SKILL.md` com guia passo a passo para auditoria e alinhamento de fotos e nomes do acervo.
 * **v2.5.1:** Adicionados campos opcionais `escala` (com badge 📏 no card) e `precoCompra` (destaque verde no modal).
 * **v2.5.0:** Documentação técnica completa das rotas de interceptação, conformidade com políticas de privacidade de lojas e consolidação dos canais de curadoria em código.
+
+### 🧠 Ciclo de Inteligência Artificial & Clean UI (v2.4)
 * **v2.4.9:** Movidos os endpoints de interceptação de nuvem (Google Drive, n8n, GitHub) para o código em `src/config/curatorEndpoints.ts`, limpando a interface de configurações para o usuário final.
 * **v2.4.8:** Implementada compressão de imagem com remoção de metadados EXIF/GPS via Canvas, consentimento transparente de curadoria e seção de Política de Privacidade (LGPD / Google Play / App Store).
 * **v2.4.7:** Correção do versionamento dinâmico no cabeçalho, aba Sobre e rodapé institucional.
 * **v2.4.6:** Clean UI com `react-markdown`, salvamento automático em `src/data/ia_reports/` e Inteligência de Vínculo de Coleção (Card do Veículo vs. Sugestão de Próxima Compra).
+* **v2.4.5:** Adicionado suporte a temas Claro/Escuro (Glassmorphism), menu de configuração de chave de API inteligente, busca com rolagem suave, links dinâmicos entre carrinhos citados em textos (`#ID`) e exportação compilada em `.txt` e `.json`.
+* **v2.4.0 – v2.4.4:** Migração tecnológica para o SDK oficial `@google/genai` e modelo multimodal `gemini-3.8-flash` (Interactions API), definição do pacote `com.garagemminiatura.app` e inclusão do rodapé institucional PereiraLabs.
+
+### 🏛️ Ciclo de Fundação e Digitalização do Acervo (v1.0 – v2.3)
+* **v2.3.0:** Primeiro protótipo de Scanner automotivo com IA para reconhecimento de miniaturas via câmera de celular.
+* **v2.2.0:** Módulo de Histórias Afetivas, permitindo aos curadores registrar curiosidades e memórias de cada modelo.
+* **v2.1.0:** Sistema interativo de engajamento da comunidade com reações (Curtidas 👍 e Descurtidas 👎 com feedback) e persistência local.
+* **v2.0.0:** Modernização da interface em Web App interativo, com divisão em categorias temáticas (Clássicos, Nacionais, Esportivos, Muscle Cars, Utilitários e Viaturas), busca em tempo real e visualização em cards com fotos originais.
+* **v1.0.0:** Digitalização e catalogação inicial dos 105 veículos a partir dos cadernos e anotações manuscritas históricas da coleção física original.
