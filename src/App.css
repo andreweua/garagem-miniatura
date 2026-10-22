@@ -1136,3 +1136,606 @@ body.light-theme .footer-credits {
     font-size: 1.8rem;
   }
 }
+
+/* ==========================================================================
+   MODO CURADOR & GABARITO DE ESTÚDIO PEREIRALABS (v2.8.0)
+   ========================================================================== */
+
+/* Botão e Badge do Curador na Nav e Hero */
+.curator-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid #f59e0b;
+  color: #f59e0b;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.curator-badge-pill:hover {
+  background: rgba(245, 158, 11, 0.25);
+  transform: translateY(-1px);
+}
+
+.modal-curator-content {
+  max-width: 760px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+
+.curator-pin-screen {
+  text-align: center;
+  padding: 30px 16px;
+}
+
+.curator-pin-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.curator-pin-screen h2 {
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+}
+
+.curator-pin-screen p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  max-width: 440px;
+  margin: 0 auto 20px;
+}
+
+.curator-pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.curator-pin-form input {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 1.2rem;
+  text-align: center;
+  letter-spacing: 4px;
+}
+
+.curator-pin-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
+/* Painel do Curador */
+.curator-dashboard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.curator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.curator-header h2 {
+  font-size: 1.3rem;
+  margin: 4px 0 0;
+}
+
+.curator-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.curator-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.curator-tab-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.curator-body {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Fila de Moderação */
+.curator-filter-row {
+  margin-bottom: 14px;
+}
+
+.moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.moderation-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.moderation-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.status-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 4px;
+}
+
+.status-pill.new {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.status-pill.match {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.moderation-text {
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  margin: 8px 0;
+}
+
+.moderation-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.curator-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text-muted);
+}
+
+.curator-empty span {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Formulário de Cadastro */
+.curator-add-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 0.88rem;
+}
+
+.form-photo-section {
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: 10px;
+}
+
+.photo-actions-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.ai-fill-status {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: #38bdf8;
+}
+
+.photo-preview-box {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.photo-preview-box img {
+  width: 90px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+/* Regras de Estúdio */
+.studio-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.studio-rule-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.studio-rule-card .rule-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.studio-rule-card strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--accent-gold);
+  margin-bottom: 4px;
+}
+
+.studio-rule-card p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Auditoria & Métricas */
+.audit-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.audit-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.audit-box .num {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.audit-box .lbl {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.audit-pending-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+
+/* ==========================================================================
+   VIEWFINDER CÂMERA DE ESTÚDIO (CAMERA STUDIO HUD)
+   ========================================================================== */
+.camera-studio-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.camera-studio-container {
+  width: 100%;
+  max-width: 520px;
+  background: #0b0f17;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.camera-studio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.camera-studio-title span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.camera-studio-title small {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.camera-studio-btn-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.camera-studio-viewfinder {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  overflow: hidden;
+}
+
+.camera-video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.1s;
+}
+
+.shutter-flash {
+  opacity: 0.2;
+}
+
+.camera-studio-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
+/* HUD / Elementos do Gabarito */
+.camera-studio-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-frame-box {
+  position: relative;
+  width: 84%;
+  height: 78%;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+}
+
+/* Cantoneiras */
+.corner-bracket {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: #fbbf24;
+  border-style: solid;
+}
+
+.corner-bracket.top-left {
+  top: -2px;
+  left: -2px;
+  border-width: 3px 0 0 3px;
+  border-top-left-radius: 10px;
+}
+
+.corner-bracket.top-right {
+  top: -2px;
+  right: -2px;
+  border-width: 3px 3px 0 0;
+  border-top-right-radius: 10px;
+}
+
+.corner-bracket.bottom-left {
+  bottom: -2px;
+  left: -2px;
+  border-width: 0 0 3px 3px;
+  border-bottom-left-radius: 10px;
+}
+
+.corner-bracket.bottom-right {
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 3px 3px 0;
+  border-bottom-right-radius: 10px;
+}
+
+/* Linha Base de Rodas */
+.wheel-baseline-guide {
+  position: absolute;
+  bottom: 18%;
+  left: 6%;
+  right: 6%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wheel-baseline-line {
+  flex: 1;
+  border-top: 1px dashed rgba(251, 191, 36, 0.85);
+  margin: 0 6px;
+  text-align: center;
+}
+
+.wheel-baseline-line span {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 1px 6px;
+  font-size: 0.65rem;
+  color: #fbbf24;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.wheel-indicator {
+  font-size: 0.85rem;
+  color: #fbbf24;
+  text-shadow: 0 0 6px #000;
+}
+
+/* Mira Central */
+.center-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  border-left: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.studio-hint-pill {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Controles Inferiores */
+.camera-studio-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-studio-control {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-studio-control:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-studio-shutter {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+
+.btn-studio-shutter:active {
+  transform: scale(0.92);
+}
+
+.shutter-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #fbbf24;
+}
+

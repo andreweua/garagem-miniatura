@@ -55,4 +55,6 @@ export interface IaReportEntry {
   isNewAcquisition: boolean;
   detectedVehicleName: string;
   cleanMarkdown: string;
+  status?: 'pending' | 'approved' | 'discarded';
+  imageBase64?: string | null;
 }

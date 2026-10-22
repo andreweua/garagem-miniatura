@@ -1,0 +1,752 @@
+[
+  {
+    "file": "1.jpg",
+    "id": 1,
+    "catalog": "#1 Mercedes-Benz 500 SL (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Mercedes-Benz",
+    "identifiedModel": "500 SL (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "2.jpg",
+    "id": 2,
+    "catalog": "#2 Larven Modellauto Katalog (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Larven",
+    "identifiedModel": "Modellauto Katalog (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "4.jpg",
+    "id": 4,
+    "catalog": "#4 Ford Vicky (1932)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "Vicky (1932)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "5.jpg",
+    "id": 5,
+    "catalog": "#5 Fiat Idea (2003)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Fiat",
+    "identifiedModel": "Idea (2003)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "6.jpg",
+    "id": 6,
+    "catalog": "#6 Ford Mustang (1964)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "Mustang (1964)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "7.jpg",
+    "id": 7,
+    "catalog": "#7 Peugeot 504 (1957)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Peugeot",
+    "identifiedModel": "504 (1957)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "8.jpg",
+    "id": 8,
+    "catalog": "#8 Volkswagen 1600 (Zé do Caixão) (1969)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Volkswagen",
+    "identifiedModel": "1600 (Zé do Caixão) (1969)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "9.jpg",
+    "id": 9,
+    "catalog": "#9 Ford F1 (1948)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "F1 (1948)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "10.jpg",
+    "id": 10,
+    "catalog": "#10 Dodge Ram 1500 (2019)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Dodge",
+    "identifiedModel": "Ram 1500 (2019)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "11.jpg",
+    "id": 11,
+    "catalog": "#11 Caminhão Antigo Calhambeque (1934)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Caminhão",
+    "identifiedModel": "Antigo Calhambeque (1934)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "12.jpg",
+    "id": 12,
+    "catalog": "#12 Transport Truck (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Transport",
+    "identifiedModel": "Truck (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "13.jpg",
+    "id": 13,
+    "catalog": "#13 Open Jeep (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Open",
+    "identifiedModel": "Jeep (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "14.jpg",
+    "id": 14,
+    "catalog": "#14 Chevrolet Bel Air (1953)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Chevrolet",
+    "identifiedModel": "Bel Air (1953)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "15.jpg",
+    "id": 15,
+    "catalog": "#15 Aero Willys Sedan (1966)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Aero",
+    "identifiedModel": "Willys Sedan (1966)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "16.jpg",
+    "id": 16,
+    "catalog": "#16 Fiat 125 (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Fiat",
+    "identifiedModel": "125 (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "18.jpg",
+    "id": 18,
+    "catalog": "#18 Lamborghini Veneno (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Lamborghini",
+    "identifiedModel": "Veneno (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "19.jpg",
+    "id": 19,
+    "catalog": "#19 Bentley Continental GT (2018)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Bentley",
+    "identifiedModel": "Continental GT (2018)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "20.jpg",
+    "id": 20,
+    "catalog": "#20 Toyota Bandeirante (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Toyota",
+    "identifiedModel": "Bandeirante (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "21.jpg",
+    "id": 21,
+    "catalog": "#21 Jeep Wrangler Militar (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Jeep",
+    "identifiedModel": "Wrangler Militar (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "22.jpg",
+    "id": 22,
+    "catalog": "#22 Jeep Renegade Trailhawk (2017)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Jeep",
+    "identifiedModel": "Renegade Trailhawk (2017)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "23.jpg",
+    "id": 23,
+    "catalog": "#23 Toyota Supra (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Toyota",
+    "identifiedModel": "Supra (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "24.jpg",
+    "id": 24,
+    "catalog": "#24 Ford Focus ST (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "Focus ST (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "25.jpg",
+    "id": 25,
+    "catalog": "#25 Van Modelo a Identificar (—)",
+    "status": "PRECISA_IDENTIFICAR",
+    "identifiedBrand": "Aguardando Gemini Vision",
+    "identifiedModel": "Aguardando Gemini Vision",
+    "isMatch": false,
+    "details": "Miniatura necessita identificação com IA ou curador."
+  },
+  {
+    "file": "26.jpg",
+    "id": 26,
+    "catalog": "#26 Hyundai i30 (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Hyundai",
+    "identifiedModel": "i30 (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "27.jpg",
+    "id": 27,
+    "catalog": "#27 Ford Explorer (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "Explorer (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "28.jpg",
+    "id": 28,
+    "catalog": "#28 Smart Fortwo Coupé (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Smart",
+    "identifiedModel": "Fortwo Coupé (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "33.jpg",
+    "id": 33,
+    "catalog": "#33 Fiat 147 (1976)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Fiat",
+    "identifiedModel": "147 (1976)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "35.jpg",
+    "id": 35,
+    "catalog": "#35 Calhambeque Modelo a Identificar (1929)",
+    "status": "PRECISA_IDENTIFICAR",
+    "identifiedBrand": "Aguardando Gemini Vision",
+    "identifiedModel": "Aguardando Gemini Vision",
+    "isMatch": false,
+    "details": "Miniatura necessita identificação com IA ou curador."
+  },
+  {
+    "file": "36.jpg",
+    "id": 36,
+    "catalog": "#36 Chevrolet 3100 (1950)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Chevrolet",
+    "identifiedModel": "3100 (1950)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "37.jpg",
+    "id": 37,
+    "catalog": "#37 Mini Cooper (1970)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Mini",
+    "identifiedModel": "Cooper (1970)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "38.jpg",
+    "id": 38,
+    "catalog": "#38 Mercedes-Benz GLK (2009)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Mercedes-Benz",
+    "identifiedModel": "GLK (2009)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "39.jpg",
+    "id": 39,
+    "catalog": "#39 Chrysler Maisto Anos 90 (1990)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Chrysler",
+    "identifiedModel": "Maisto Anos 90 (1990)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "40.jpg",
+    "id": 40,
+    "catalog": "#40 Fiat Uno 1.5 R (1988)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Fiat",
+    "identifiedModel": "Uno 1.5 R (1988)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "41.jpg",
+    "id": 41,
+    "catalog": "#41 Opel Astra GTC (2005)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Opel",
+    "identifiedModel": "Astra GTC (2005)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "42.jpg",
+    "id": 42,
+    "catalog": "#42 Ford GT (2006)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "GT (2006)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "43.jpg",
+    "id": 43,
+    "catalog": "#43 Dodge Ram (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Dodge",
+    "identifiedModel": "Ram (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "45.jpg",
+    "id": 45,
+    "catalog": "#45 Táxi Americano (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Táxi",
+    "identifiedModel": "Americano (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "46.jpg",
+    "id": 46,
+    "catalog": "#46 Chevrolet Bel Air (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Chevrolet",
+    "identifiedModel": "Bel Air (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "48.jpg",
+    "id": 48,
+    "catalog": "#48 Jipe Exército dos EUA (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Jipe",
+    "identifiedModel": "Exército dos EUA (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "50.jpg",
+    "id": 50,
+    "catalog": "#50 Ford F-750 (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "F-750 (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "51.jpg",
+    "id": 51,
+    "catalog": "#51 Toyota Camry (2015)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Toyota",
+    "identifiedModel": "Camry (2015)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "52.jpg",
+    "id": 52,
+    "catalog": "#52 BMW Modelo a Identificar (—)",
+    "status": "PRECISA_IDENTIFICAR",
+    "identifiedBrand": "Aguardando Gemini Vision",
+    "identifiedModel": "Aguardando Gemini Vision",
+    "isMatch": false,
+    "details": "Miniatura necessita identificação com IA ou curador."
+  },
+  {
+    "file": "54.jpg",
+    "id": 54,
+    "catalog": "#54 Bugatti SUV (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Bugatti",
+    "identifiedModel": "SUV (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "55.jpg",
+    "id": 55,
+    "catalog": "#55 Ford F-100 Picape (1956)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "F-100 Picape (1956)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "56.jpg",
+    "id": 56,
+    "catalog": "#56 Koenigsegg Modelo a Identificar (—)",
+    "status": "PRECISA_IDENTIFICAR",
+    "identifiedBrand": "Aguardando Gemini Vision",
+    "identifiedModel": "Aguardando Gemini Vision",
+    "isMatch": false,
+    "details": "Miniatura necessita identificação com IA ou curador."
+  },
+  {
+    "file": "60.jpg",
+    "id": 60,
+    "catalog": "#60 Lamborghini Urus (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Lamborghini",
+    "identifiedModel": "Urus (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "61.jpg",
+    "id": 61,
+    "catalog": "#61 Pick Up Truck (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Pick",
+    "identifiedModel": "Up Truck (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "62.jpg",
+    "id": 62,
+    "catalog": "#62 Dodge Viper GTS (2013)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Dodge",
+    "identifiedModel": "Viper GTS (2013)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "63.jpg",
+    "id": 63,
+    "catalog": "#63 Mercedes-Benz CLS 63 AMG (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Mercedes-Benz",
+    "identifiedModel": "CLS 63 AMG (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "65.jpg",
+    "id": 65,
+    "catalog": "#65 BMW i8 (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "BMW",
+    "identifiedModel": "i8 (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "66.jpg",
+    "id": 66,
+    "catalog": "#66 Ford GT (2006)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ford",
+    "identifiedModel": "GT (2006)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "67.jpg",
+    "id": 67,
+    "catalog": "#67 Dodge Challenger T/A (1970)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Dodge",
+    "identifiedModel": "Challenger T/A (1970)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "68.jpg",
+    "id": 68,
+    "catalog": "#68 Lotus Exige S (2012)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Lotus",
+    "identifiedModel": "Exige S (2012)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "69.jpg",
+    "id": 69,
+    "catalog": "#69 Maserati GranTurismo MC (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Maserati",
+    "identifiedModel": "GranTurismo MC (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "70.jpg",
+    "id": 70,
+    "catalog": "#70 Chevrolet Corvette Stingray (1963)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Chevrolet",
+    "identifiedModel": "Corvette Stingray (1963)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "71.jpg",
+    "id": 71,
+    "catalog": "#71 Lamborghini Miura P400 SV (1971)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Lamborghini",
+    "identifiedModel": "Miura P400 SV (1971)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "72.jpg",
+    "id": 72,
+    "catalog": "#72 Dodge Challenger SRT Demon (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Dodge",
+    "identifiedModel": "Challenger SRT Demon (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "74.jpg",
+    "id": 74,
+    "catalog": "#74 Aston Martin DB5 (1963)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Aston",
+    "identifiedModel": "Martin DB5 (1963)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "75.jpg",
+    "id": 75,
+    "catalog": "#75 Porsche 911 GT3 RS (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Porsche",
+    "identifiedModel": "911 GT3 RS (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "77.jpg",
+    "id": 77,
+    "catalog": "#77 BMW 501/502 (1952)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "BMW",
+    "identifiedModel": "501/502 (1952)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "78.jpg",
+    "id": 78,
+    "catalog": "#78 Chevrolet Camaro (1969)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Chevrolet",
+    "identifiedModel": "Camaro (1969)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "79.jpg",
+    "id": 79,
+    "catalog": "#79 Volkswagen Fusca Polícia Federal (1967)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Volkswagen",
+    "identifiedModel": "Fusca Polícia Federal (1967)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "80.jpg",
+    "id": 80,
+    "catalog": "#80 Subaru Impreza WRC (2007)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Subaru",
+    "identifiedModel": "Impreza WRC (2007)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "82.jpg",
+    "id": 82,
+    "catalog": "#82 Chevrolet Camaro (1969)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Chevrolet",
+    "identifiedModel": "Camaro (1969)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "83.jpg",
+    "id": 83,
+    "catalog": "#83 Alfa Romeo FNM JK 2000 (1967)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Alfa",
+    "identifiedModel": "Romeo FNM JK 2000 (1967)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "84.jpg",
+    "id": 84,
+    "catalog": "#84 Cadillac Modelo a Identificar (1953)",
+    "status": "PRECISA_IDENTIFICAR",
+    "identifiedBrand": "Aguardando Gemini Vision",
+    "identifiedModel": "Aguardando Gemini Vision",
+    "isMatch": false,
+    "details": "Miniatura necessita identificação com IA ou curador."
+  },
+  {
+    "file": "85.jpg",
+    "id": 85,
+    "catalog": "#85 Toyota FJ Cruiser (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Toyota",
+    "identifiedModel": "FJ Cruiser (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "86.jpg",
+    "id": 86,
+    "catalog": "#86 Lada Samara Sedan (1991)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Lada",
+    "identifiedModel": "Samara Sedan (1991)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "88.jpg",
+    "id": 88,
+    "catalog": "#88 Bentley Continental GT (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Bentley",
+    "identifiedModel": "Continental GT (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "89.jpg",
+    "id": 89,
+    "catalog": "#89 Porsche 356 Carrera (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Porsche",
+    "identifiedModel": "356 Carrera (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "90.jpg",
+    "id": 90,
+    "catalog": "#90 Mercedes-Benz 500 SL (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Mercedes-Benz",
+    "identifiedModel": "500 SL (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "93.jpg",
+    "id": 93,
+    "catalog": "#93 Bugatti 16C Galibier (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Bugatti",
+    "identifiedModel": "16C Galibier (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "94.jpg",
+    "id": 94,
+    "catalog": "#94 Cadillac Fleetwood (—)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Cadillac",
+    "identifiedModel": "Fleetwood (—)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "99.jpg",
+    "id": 99,
+    "catalog": "#99 Ferrari 275 GTB (1966)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Ferrari",
+    "identifiedModel": "275 GTB (1966)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  },
+  {
+    "file": "103.jpg",
+    "id": 103,
+    "catalog": "#103 Chevrolet Corvette Stingray (1963)",
+    "status": "CADASTRADO",
+    "identifiedBrand": "Chevrolet",
+    "identifiedModel": "Corvette Stingray (1963)",
+    "isMatch": true,
+    "details": "Foto associada ao catálogo."
+  }
+]

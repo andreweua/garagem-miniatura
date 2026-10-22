@@ -25,6 +25,11 @@ dist-ssr
 *.sw?
 Thumbs.db
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
 # Capacitor native build artifacts
 android/.gradle
 android/app/build

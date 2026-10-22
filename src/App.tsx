@@ -5,6 +5,8 @@ import { GoogleGenAI } from '@google/genai';
 import pkg from '../package.json';
 import { CARS_DATA } from './data/cars';
 import { CURATOR_ENDPOINTS } from './config/curatorEndpoints';
+import { CuratorModal } from './components/CuratorModal';
+import { CameraStudioModal } from './components/CameraStudioModal';
 import type {
   CarItem,
   CarCategory,
@@ -121,7 +123,7 @@ function stripMarkdownPreview(md: string): string {
  * Detecta se o veículo retornado pela IA já existe no acervo de 105 carros
  * ou se é uma recomendação de nova compra.
  */
-function analyzeCollectionLink(cleanText: string): {
+function analyzeCollectionLink(cleanText: string, carsList: CarItem[] = CARS_DATA): {
   matchedCar: CarItem | null;
   isNewAcquisition: boolean;
   detectedName: string;
@@ -146,14 +148,14 @@ function analyzeCollectionLink(cleanText: string): {
     const idMatches = [...cleanText.matchAll(/#(\d{1,3})\b/g)];
     if (idMatches.length > 0) {
       const firstId = Number(idMatches[0][1]);
-      const byId = CARS_DATA.find((c) => c.id === firstId);
+      const byId = carsList.find((c) => c.id === firstId);
       if (byId) {
         return { matchedCar: byId, isNewAcquisition: false, detectedName };
       }
     }
 
     // 2º: Procura correspondência por marca + modelo no texto
-    const byBrandModel = CARS_DATA.find((c) => {
+    const byBrandModel = carsList.find((c) => {
       if (c.modelo.includes('Modelo a Identificar')) return false;
       const brandLower = c.marca.toLowerCase();
       const modelLower = c.modelo.toLowerCase();
@@ -258,6 +260,24 @@ export default function App() {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
+  const [curatorModalOpen, setCuratorModalOpen] = useState(false);
+  const [isCuratorUnlocked, setIsCuratorUnlocked] = useState(
+    () => localStorage.getItem('garagem_curator_session') === 'true'
+  );
+  const [isScannerStudioCamOpen, setIsScannerStudioCamOpen] = useState(false);
+
+  // Veículos adicionados via curadoria (persistência local)
+  const [customCars, setCustomCars] = useState<CarItem[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('garagem_custom_cars') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const allCars = useMemo(() => {
+    return [...CARS_DATA, ...customCars];
+  }, [customCars]);
 
   // Estado IA Scanner & Consentimento de Curadoria (destinos fixos no código em src/config/curatorEndpoints.ts)
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
@@ -560,16 +580,18 @@ export default function App() {
         setAiModalOpen(false);
         setSettingsModalOpen(false);
         setAboutModalOpen(false);
+        setCuratorModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     const backListener = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-      if (selectedCar || aiModalOpen || settingsModalOpen || aboutModalOpen) {
+      if (selectedCar || aiModalOpen || settingsModalOpen || aboutModalOpen || curatorModalOpen) {
         setSelectedCar(null);
         setAiModalOpen(false);
         setSettingsModalOpen(false);
         setAboutModalOpen(false);
+        setCuratorModalOpen(false);
       } else if (!canGoBack) {
         CapacitorApp.exitApp();
       }
@@ -579,18 +601,18 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       backListener.then((h) => h.remove());
     };
-  }, [selectedCar, aiModalOpen, settingsModalOpen, aboutModalOpen]);
+  }, [selectedCar, aiModalOpen, settingsModalOpen, aboutModalOpen, curatorModalOpen]);
 
   const totalMarcas = useMemo(() => {
     const marcas = new Set(
-      CARS_DATA.map((c) => c.marca).filter((m) => m && !m.includes('Modelo a Identificar'))
+      allCars.map((c) => c.marca).filter((m) => m && !m.includes('Modelo a Identificar'))
     );
     return marcas.size;
-  }, []);
+  }, [allCars]);
 
   const filteredCars = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    return CARS_DATA.filter((car) => {
+    return allCars.filter((car) => {
       const carStory = (stories[car.id]?.story || car.historia || '').toLowerCase();
       const matchText =
         car.modelo.toLowerCase().includes(q) ||
@@ -601,30 +623,31 @@ export default function App() {
       const matchCategory = categoryFilter === 'todos' || car.categoria === categoryFilter;
       return matchText && matchCategory;
     });
-  }, [searchQuery, categoryFilter, stories]);
+  }, [searchQuery, categoryFilter, stories, allCars]);
 
   const similarCars = useMemo(() => {
     if (!selectedCar) return [];
-    return CARS_DATA.filter(
+    return allCars.filter(
       (c) =>
         c.id !== selectedCar.id &&
         (c.marca === selectedCar.marca || c.categoria === selectedCar.categoria)
     ).slice(0, 6);
-  }, [selectedCar]);
+  }, [selectedCar, allCars]);
 
   // Análise de vínculo da resposta atual da IA
   const aiLinkAnalysis = useMemo(() => {
     if (!aiResult) return null;
-    return analyzeCollectionLink(aiResult);
-  }, [aiResult]);
+    return analyzeCollectionLink(aiResult, allCars);
+  }, [aiResult, allCars]);
 
   const navigateToCarById = (carId: number) => {
-    const targetCar = CARS_DATA.find((c) => c.id === carId);
+    const targetCar = allCars.find((c) => c.id === carId);
     if (!targetCar) return;
 
     setAiModalOpen(false);
     setSettingsModalOpen(false);
     setAboutModalOpen(false);
+    setCuratorModalOpen(false);
 
     setSearchQuery('');
     setCategoryFilter('todos');
@@ -650,7 +673,7 @@ export default function App() {
     while ((match = regex.exec(text)) !== null) {
       const fullMatch = match[0];
       const idNum = Number(match[1]);
-      const car = CARS_DATA.find((c) => c.id === idNum);
+      const car = allCars.find((c) => c.id === idNum);
 
       if (match.index > lastIndex) {
         parts.push(text.slice(lastIndex, match.index));
@@ -982,7 +1005,7 @@ export default function App() {
     const votedItems = Object.entries(reactions)
       .filter(([, r]) => r.likes > 0 || r.dislikes > 0 || r.comment)
       .map(([id, r]) => {
-        const car = CARS_DATA.find((c) => c.id === Number(id));
+        const car = allCars.find((c) => c.id === Number(id));
         return {
           id: Number(id),
           veiculo: car ? `${car.marca} ${car.modelo}` : `#${id}`,
@@ -1099,6 +1122,90 @@ export default function App() {
     window.open(`https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  const handleAddNewCar = (newCar: CarItem) => {
+    setCustomCars((prev) => {
+      const updated = [newCar, ...prev.filter((c) => c.id !== newCar.id)];
+      try {
+        localStorage.setItem('garagem_custom_cars', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (newCar.historia) {
+      setStories((prev) => {
+        const updated = {
+          ...prev,
+          [newCar.id]: {
+            carId: newCar.id,
+            marca: newCar.marca,
+            modelo: newCar.modelo,
+            story: cleanAiMarkdownText(newCar.historia!),
+            updatedAt: new Date().toISOString()
+          }
+        };
+        try {
+          localStorage.setItem('garagem_stories', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    }
+
+    void persistIaReportToProjectFolder(
+      newCar.historia || `Novo veículo #${newCar.id} ${newCar.marca} ${newCar.modelo} cadastrado no acervo.`,
+      {
+        matchedCar: newCar,
+        isNewAcquisition: true,
+        detectedName: `${newCar.marca} ${newCar.modelo}`
+      },
+      newCar.foto && newCar.foto.includes(',') ? newCar.foto.split(',')[1] : null
+    );
+  };
+
+  const handleApproveReport = (report: IaReportEntry, updatedStoryText?: string) => {
+    const finalText = (updatedStoryText || report.cleanMarkdown).trim();
+
+    if (report.matchedCarId) {
+      const targetCar = allCars.find((c) => c.id === report.matchedCarId);
+      if (targetCar) {
+        handleSaveStory(targetCar, finalText);
+      }
+    }
+
+    setIaReports((prev) => {
+      const updated = prev.map((r) =>
+        r.id === report.id ? { ...r, status: 'approved' as const, cleanMarkdown: finalText } : r
+      );
+      try {
+        localStorage.setItem('garagem_ia_reports', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    alert('✅ Sugestão aprovada e integrada com sucesso ao catálogo!');
+  };
+
+  const handleDiscardReport = (reportId: string) => {
+    if (!confirm('Deseja descartar este relatório da moderação?')) return;
+    setIaReports((prev) => {
+      const updated = prev.filter((r) => r.id !== reportId);
+      try {
+        localStorage.setItem('garagem_ia_reports', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const handleStudioCameraCapture = async (fullDataUrl: string) => {
+    setSelectedImagePreview(fullDataUrl);
+    const strippedCompressedBase64 = await compressAndStripExifBase64(fullDataUrl, 800);
+    setSelectedImageMime('image/jpeg');
+    setSelectedImageBase64(strippedCompressedBase64);
+    setAiResult(null);
+    setAiError(null);
+    setLastSavedReport(null);
+    setSyncStatusMsg(null);
+  };
+
   const handleSaveSettings = () => {
     const trimmedKey = apiKey.trim();
     if (trimmedKey) {
@@ -1163,8 +1270,8 @@ export default function App() {
     ]);
 
     const prompt = `Você é um curador especialista em réplicas de automóveis e miniaturas.
-Analise detalhadamente a foto desta miniatura e compare com a lista dos ${CARS_DATA.length} veículos deste acervo:
-${CARS_DATA.map((c) => `#${c.id} . ${c.marca} ${c.modelo} (${c.ano})`).join('; ')}
+Analise detalhadamente a foto desta miniatura e compare com a lista dos ${allCars.length} veículos deste acervo:
+${allCars.map((c) => `#${c.id} . ${c.marca} ${c.modelo} (${c.ano})`).join('; ')}
 
 Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem repetir parágrafos), estruturado exatamente em:
 - **Veículo Identificado:** Marca, Modelo, Ano aproximado e Categoria.
@@ -1240,6 +1347,16 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               Garagem<span>Miniatura</span>
             </span>
             <span className="version-tag">v{pkg.version}</span>
+            {isCuratorUnlocked && (
+              <button
+                type="button"
+                className="curator-badge-pill"
+                onClick={() => setCuratorModalOpen(true)}
+                title="Abrir Painel do Curador"
+              >
+                🛡️ Curador Ativo
+              </button>
+            )}
           </div>
 
           <button
@@ -1269,6 +1386,17 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               }}
             >
               🤖 IA Scanner
+            </button>
+            <button
+              type="button"
+              className="nav-btn-link"
+              style={{ color: '#f59e0b', fontWeight: 'bold' }}
+              onClick={() => {
+                setMenuOpen(false);
+                setCuratorModalOpen(true);
+              }}
+            >
+              {isCuratorUnlocked ? '🛡️ Painel Curador' : '🛡️ Modo Curador'}
             </button>
             <button
               type="button"
@@ -1313,7 +1441,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
 
           <div className="stats-bar" id="estatisticas">
             <div className="stat-card">
-              <span className="stat-num">{CARS_DATA.length}</span>
+              <span className="stat-num">{allCars.length}</span>
               <span className="stat-label">Modelos Catalogados</span>
             </div>
             <div className="stat-card">
@@ -1714,9 +1842,18 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                   className="file-input-hidden"
                   onChange={handleFileChange}
                 />
-                <label htmlFor="ai-file-input" className="btn-primary">
-                  📸 Tirar Foto / Carregar Arquivo
-                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => setIsScannerStudioCamOpen(true)}
+                  >
+                    📐 Câmera com Gabarito de Estúdio
+                  </button>
+                  <label htmlFor="ai-file-input" className="btn-secondary" style={{ cursor: 'pointer' }}>
+                    📁 Carregar do Dispositivo
+                  </label>
+                </div>
 
                 <label
                   style={{
@@ -2026,6 +2163,30 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
           </div>
         </div>
       )}
+
+      {/* MODAL DO CURADOR (FILA DE MODERAÇÃO, CADASTRO E AUDITORIA) */}
+      <CuratorModal
+        isOpen={curatorModalOpen}
+        onClose={() => setCuratorModalOpen(false)}
+        isUnlocked={isCuratorUnlocked}
+        setIsUnlocked={setIsCuratorUnlocked}
+        allCars={allCars}
+        onAddNewCar={handleAddNewCar}
+        iaReports={iaReports}
+        onApproveReport={handleApproveReport}
+        onDiscardReport={handleDiscardReport}
+        stories={stories}
+        apiKey={apiKey}
+        setApiKey={setApiKey}
+      />
+
+      {/* CÂMERA DE ESTÚDIO PARA O SCANNER IA */}
+      <CameraStudioModal
+        isOpen={isScannerStudioCamOpen}
+        onClose={() => setIsScannerStudioCamOpen(false)}
+        onCapture={handleStudioCameraCapture}
+        title="Gabarito de Estúdio — Scanner IA"
+      />
 
       <footer className="footer" id="sobre">
         <div className="container footer-content">

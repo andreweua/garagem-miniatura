@@ -1,6 +1,6 @@
-# 🏎️ Garagem em Miniatura - Controlador da Aplicação (v2.7.0)
+# 🏎️ Garagem em Miniatura - Controlador da Aplicação (v2.8.0)
 
-> Progressive Web App (PWA) e App Multiplataforma Nativo (**Android** + **iOS**) com arquitetura **Live Over-The-Air (OTA)** para catalogação, preservação histórica, filtragem inteligente e curadoria visual com Inteligência Artificial para réplicas automotivas em miniatura.
+> Progressive Web App (PWA) e App Multiplataforma Nativo (**Android** + **iOS**) com arquitetura **Live Over-The-Air (OTA)** para catalogação, preservação histórica, filtragem inteligente, Painel de Curadoria In-App com PIN, Fila de Moderação e Gabarito de Estúdio Fotográfico 4:3 com Inteligência Artificial para réplicas automotivas em miniatura.
 
 Desenvolvido por **PereiraLabs (Divisão de Tecnologia e IA da Louzada & Pereira - Soluções Digitais)**.  
 Hospedagem Oficial em Produção: [andreweua.github.io/garagem-miniatura/](https://andreweua.github.io/garagem-miniatura/)  
@@ -144,6 +144,14 @@ npm run build:ios
 ---
 
 ## 📝 Histórico Completo de Versões e Evolução do Projeto
+
+### 🛡️ Ciclo de Curadoria In-App, Estúdio & Auditoria (v2.8)
+* **v2.8.0:**
+  - **Modo Curador In-App com PIN (`2026`):** Acesso protegido diretamente pelo aplicativo para curadores e moderadores PereiraLabs, com badge ativo no cabeçalho e menu seguro.
+  - **Fila de Moderação Integrada:** Painel para revisar sugestões, relatórios IA e histórias submetidas por usuários, com botões para aprovação instantânea com salvamento no card/catálogo (`✅ Aprovar para o Catálogo`), ajuste de texto ou descarte (`❌ Descartar`).
+  - **Cadastro de Novos Veículos (Novas Aquisições):** Formulário in-app para cadastrar novas miniaturas adquiridas com atribuição automática do próximo ID (`#106+`), foto padronizada e botão **Preencher com Gemini Vision 🤖** para preenchimento inteligente de marca, modelo, ano, categoria e história.
+  - **Gabarito de Estúdio Fotográfico 4:3:** Viewfinder interativo em tempo real via câmera (`CameraStudioModal`) com proporção 4:3, linha guia de apoio das 4 rodas, mira central e cantoneiras de área de segurança (80%) para garantir fotos padronizadas sem cortes de para-choques e sem desfoque. Disponível tanto no cadastro quanto no IA Scanner.
+  - **Auditoria do Acervo via Script & Markdown:** Criação de `scripts/audit_collection.mjs` e relatório gerado `AUDITORIA_ACERVO_GEMINI.md` auditando os 105 veículos, 75 fotos físicas em `public/img/`, os 5 modelos genéricos a identificar e os 30 aguardando fotos.
 
 ### 🚀 Ciclo Multiplataforma Nativo & Live Over-The-Air (v2.6 – v2.7)
 * **v2.7.0:** Inicialização da plataforma nativa **iOS** (`ios/App.xcworkspace`, `Info.plist` com autorizações da Apple e `AppIcon` 1024x1024 preservado), esteira CI/CD em servidores Mac virtuais (`build-ios.yml`), e ativação da arquitetura **Live Over-The-Air (OTA)** para atualização contínua pelo ar via GitHub Pages.
