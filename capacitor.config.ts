@@ -5,10 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Garagem em Miniatura',
   webDir: 'dist',
   server: {
-    // Atualizações Live Over-The-Air (OTA) automáticas via GitHub Pages
-    url: 'https://andreweua.github.io/garagem-miniatura/',
-    androidScheme: 'https',
-    cleartext: false
+    androidScheme: 'https'
   }
 };
 

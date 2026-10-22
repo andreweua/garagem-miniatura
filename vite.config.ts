@@ -6,7 +6,7 @@ import path from 'node:path'
 
 // https://vite.dev
 export default defineConfig({
-  base: '/garagem-miniatura/',
+  base: './',
   plugins: [
     react(),
     {

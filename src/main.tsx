@@ -1,12 +1,22 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { registerSW } from 'virtual:pwa-register';
 import App from './App.tsx';
 
-registerSW({ immediate: true });
+try {
+  if ('serviceWorker' in navigator) {
+    import('virtual:pwa-register').then(({ registerSW }) => {
+      registerSW({ immediate: true });
+    }).catch(() => {});
+  }
+} catch {
+  // Service worker não suportado ou bloqueado no webview nativo
+}
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+const rootEl = document.getElementById('root');
+if (rootEl) {
+  createRoot(rootEl).render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+}
