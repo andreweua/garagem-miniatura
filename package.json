@@ -1,21 +1,23 @@
 {
   "name": "garagem-miniatura",
   "private": true,
-  "version": "2.6.0",
+  "version": "2.7.0",
   "type": "module",
-  "description": "PWA e App Multiplataforma Nativo Android - Catálogo interativo e curadoria de veículos em miniatura com IA (PereiraLabs)",
+  "description": "App Multiplataforma Nativo (Android + iOS) e PWA com Live Over-The-Air (OTA) - Catálogo interativo e curadoria de veículos em miniatura com IA (PereiraLabs)",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "cap:sync": "npm run build && npx cap sync",
-    "build:apk": "npm run build && npx cap sync android"
+    "build:apk": "npm run build && npx cap sync android",
+    "build:ios": "npm run build && npx cap sync ios"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",
     "@capacitor/app": "^7.0.0",
     "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.6.9",
     "@google/genai": "^2.30.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

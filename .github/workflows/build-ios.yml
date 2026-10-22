@@ -1,0 +1,64 @@
+name: Build iOS Project (Garagem em Miniatura)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ios/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'capacitor.config.ts'
+      - '.github/workflows/build-ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Build Web Assets (Vite)
+        run: npm run build
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Install CocoaPods Dependencies
+        working-directory: ios/App
+        run: pod install
+
+      - name: Build Xcode Workspace
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build
+
+      - name: Upload iOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Garagem-Miniatura-iOS-App
+          path: ios/App/build/Build/Products/Debug-iphoneos/App.app
+          retention-days: 30
