@@ -31,6 +31,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -46,13 +49,10 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android API 35 and Accept Licenses
         run: |
           yes | sdkmanager --licenses || true
-          echo "y" | sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build Android Debug APK
         working-directory: android
