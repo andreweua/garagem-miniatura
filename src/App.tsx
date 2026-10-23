@@ -257,6 +257,8 @@ export default function App() {
 
   // Modais
   const [selectedCar, setSelectedCar] = useState<CarItem | null>(null);
+  const [carModalTab, setCarModalTab] = useState<'ficha' | 'historia' | 'relacionadas'>('ficha');
+  const [isPhotoZoomOpen, setIsPhotoZoomOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
@@ -553,6 +555,8 @@ export default function App() {
         '';
       setStoryDraft(savedOrPending ? cleanAiMarkdownText(savedOrPending) : '');
       setIsEditingStory(false);
+      setCarModalTab('ficha');
+      setIsPhotoZoomOpen(false);
     }
   }, [selectedCar, stories, pendingAiStories]);
 
@@ -576,6 +580,10 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isPhotoZoomOpen) {
+          setIsPhotoZoomOpen(false);
+          return;
+        }
         setSelectedCar(null);
         setAiModalOpen(false);
         setSettingsModalOpen(false);
@@ -1700,7 +1708,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         </div>
       </section>
 
-      {/* MODAL DETALHES DO CARRO (MODERNO, LIMPO E FOCO EM UX) */}
+      {/* MODAL DETALHES DO CARRO (3 ABAS HORIZONTAIS + ZOOM DE FOTO) */}
       {selectedCar && (
         <div className="modal-overlay" onClick={() => setSelectedCar(null)}>
           <div className="modal-content modal-car-detail" onClick={(e) => e.stopPropagation()}>
@@ -1711,128 +1719,243 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
             >
               &times;
             </button>
-            <div className="modal-body">
-              <div className="modal-image-wrapper">
-                <CarImage car={selectedCar} className="modal-img" />
-              </div>
 
-              <div style={{ marginTop: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                  <span className="card-badge">{selectedCar.categoria}</span>
-                  <span className="card-id">#{selectedCar.id}</span>
-                  {selectedCar.ano && selectedCar.ano !== '—' && (
-                    <span className="card-year">📅 {selectedCar.ano}</span>
-                  )}
-                </div>
-                <h2 style={{ margin: '4px 0 10px', fontSize: '1.45rem', letterSpacing: '-0.3px' }}>
-                  {selectedCar.marca} {selectedCar.modelo}
-                </h2>
-              </div>
+            {/* BARRA DE NAVEGAÇÃO POR ABAS HORIZONTAIS */}
+            <div className="car-modal-tabs-header">
+              <button
+                type="button"
+                className={`car-modal-tab-btn ${carModalTab === 'ficha' ? 'active' : ''}`}
+                onClick={() => setCarModalTab('ficha')}
+              >
+                🏎️ Ficha &amp; Foto
+              </button>
+              <button
+                type="button"
+                className={`car-modal-tab-btn ${carModalTab === 'historia' ? 'active' : ''}`}
+                onClick={() => setCarModalTab('historia')}
+              >
+                📖 História &amp; Fatos
+              </button>
+              <button
+                type="button"
+                className={`car-modal-tab-btn ${carModalTab === 'relacionadas' ? 'active' : ''}`}
+                onClick={() => setCarModalTab('relacionadas')}
+              >
+                🔗 Miniaturas Relacionadas ({similarCars.length})
+              </button>
+            </div>
 
-              {/* SPECS GRID MODERNO E LIMPO */}
-              <div className="car-specs-grid">
-                <div className="spec-card">
-                  <span className="spec-label">Fabricante</span>
-                  <strong className="spec-value">{selectedCar.fabricante || '—'}</strong>
-                </div>
-                <div className="spec-card">
-                  <span className="spec-label">Escala</span>
-                  <strong className="spec-value">{selectedCar.escala || '1:64'}</strong>
-                </div>
-                {selectedCar.precoCompra && (
-                  <div className="spec-card">
-                    <span className="spec-label">Preço de Compra</span>
-                    <strong className="spec-value highlight">{selectedCar.precoCompra}</strong>
+            <div className="modal-body car-modal-tab-body">
+              {/* TELA 1: AS INFORMAÇÕES INICIAIS E FOTO (CLIQUE NA FOTO PARA ZOOM) */}
+              {carModalTab === 'ficha' && (
+                <div className="car-tab-panel animate-fade-in">
+                  <div
+                    className="modal-image-wrapper zoomable"
+                    onClick={() => setIsPhotoZoomOpen(true)}
+                    title="Toque na foto para dar zoom"
+                    style={{ cursor: 'zoom-in' }}
+                  >
+                    <CarImage car={selectedCar} className="modal-img" />
+                    <span className="photo-zoom-hint">🔍 Toque para Ampliar</span>
                   </div>
-                )}
-              </div>
 
-              {/* HISTÓRIA E DESCRIÇÃO (MODO LEITURA LIMPO) */}
-              {storyDraft.trim() ? (
-                <div className="car-story-clean-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#93c5fd' }}>
-                      📖 História &amp; Curiosidades
-                    </h3>
-                    {isCuratorUnlocked && (
-                      <button
-                        type="button"
-                        className="btn-mini btn-mini-cancel"
-                        onClick={() => setIsEditingStory(!isEditingStory)}
-                      >
-                        {isEditingStory ? 'Cancelar' : '✏️ Editar'}
-                      </button>
+                  <div style={{ marginTop: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                      <span className="card-badge">{selectedCar.categoria}</span>
+                      <span className="card-id">#{selectedCar.id}</span>
+                      {selectedCar.ano && selectedCar.ano !== '—' && (
+                        <span className="card-year">📅 {selectedCar.ano}</span>
+                      )}
+                    </div>
+                    <h2 style={{ margin: '4px 0 12px', fontSize: '1.45rem', letterSpacing: '-0.3px' }}>
+                      {selectedCar.marca} {selectedCar.modelo}
+                    </h2>
+                  </div>
+
+                  {/* SPECS GRID */}
+                  <div className="car-specs-grid">
+                    <div className="spec-card">
+                      <span className="spec-label">Número no Acervo</span>
+                      <strong className="spec-value">#{selectedCar.id}</strong>
+                    </div>
+                    <div className="spec-card">
+                      <span className="spec-label">Ano de Fabricação</span>
+                      <strong className="spec-value">{selectedCar.ano}</strong>
+                    </div>
+                    <div className="spec-card">
+                      <span className="spec-label">Categoria</span>
+                      <strong className="spec-value">{selectedCar.categoria}</strong>
+                    </div>
+                    <div className="spec-card">
+                      <span className="spec-label">Fabricante da Miniatura</span>
+                      <strong className="spec-value">{selectedCar.fabricante || '—'}</strong>
+                    </div>
+                    <div className="spec-card">
+                      <span className="spec-label">Escala da Miniatura</span>
+                      <strong className="spec-value">{selectedCar.escala || '1:64'}</strong>
+                    </div>
+                    {selectedCar.precoCompra && (
+                      <div className="spec-card">
+                        <span className="spec-label">Preço de Compra</span>
+                        <strong className="spec-value highlight">{selectedCar.precoCompra}</strong>
+                      </div>
                     )}
                   </div>
+                </div>
+              )}
 
-                  {isEditingStory ? (
-                    <>
-                      <textarea
-                        className="story-textarea"
-                        value={storyDraft}
-                        onChange={(e) => setStoryDraft(e.target.value)}
-                        rows={6}
-                      />
-                      <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-                        <button
-                          type="button"
-                          className="btn-primary"
-                          style={{ fontSize: '0.82rem', padding: '6px 14px' }}
-                          onClick={() => {
-                            handleSaveStory(selectedCar);
-                            setIsEditingStory(false);
-                          }}
-                        >
-                          💾 Salvar Alterações
-                        </button>
+              {/* TELA 2: TEXTOS VEÍCULO IDENTIFICADO E HISTÓRIA E CURIOSIDADES */}
+              {carModalTab === 'historia' && (
+                <div className="car-tab-panel animate-fade-in">
+                  <div className="car-story-clean-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div>
+                        <span className="badge" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>
+                          Registro Oficial do Acervo
+                        </span>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#93c5fd' }}>
+                          #{selectedCar.id} • {selectedCar.marca} {selectedCar.modelo} ({selectedCar.ano})
+                        </h3>
+                      </div>
+                      {/* APENAS CURADOR AUTENTICADO COM PIN PODE EDITAR */}
+                      {isCuratorUnlocked && (
                         <button
                           type="button"
                           className="btn-mini btn-mini-cancel"
-                          onClick={() => setIsEditingStory(false)}
+                          onClick={() => setIsEditingStory(!isEditingStory)}
                         >
-                          Cancelar
+                          {isEditingStory ? 'Cancelar' : '✏️ Editar (Modo Curador)'}
                         </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="ai-result ai-markdown-body" style={{ marginTop: 0 }}>
-                      <ReactMarkdown
-                        components={{
-                          p: ({ children }) => <p>{processMarkdownChildren(children)}</p>,
-                          li: ({ children }) => <li>{processMarkdownChildren(children)}</li>
-                        }}
-                      >
-                        {storyDraft}
-                      </ReactMarkdown>
+                      )}
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="car-story-empty">
-                  <span>🚗 Miniatura catalogada no acervo. História em processo de curadoria.</span>
-                </div>
-              )}
 
-              {/* MINIATURAS SIMILARES (CHIPS HORIZONTAIS LIMPOS) */}
-              {similarCars.length > 0 && (
-                <div style={{ marginTop: '16px' }}>
-                  <h4 style={{ margin: '0 0 6px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    🔗 Miniaturas Relacionadas
-                  </h4>
-                  <div className="similar-pills-row">
-                    {similarCars.map((sim) => (
-                      <button
-                        key={sim.id}
-                        type="button"
-                        className="similar-pill-btn"
-                        onClick={() => navigateToCarById(sim.id)}
-                      >
-                        #{sim.id} {sim.marca} {sim.modelo}
-                      </button>
-                    ))}
+                    {/* SE FOR CURADOR E ESTIVER EM MODO DE EDIÇÃO */}
+                    {isCuratorUnlocked && isEditingStory ? (
+                      <>
+                        <textarea
+                          className="story-textarea"
+                          value={storyDraft}
+                          onChange={(e) => setStoryDraft(e.target.value)}
+                          rows={8}
+                          placeholder="Digite ou edite a história e curiosidades deste veículo..."
+                        />
+                        <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{ fontSize: '0.85rem', padding: '6px 14px' }}
+                            onClick={() => {
+                              handleSaveStory(selectedCar);
+                              setIsEditingStory(false);
+                            }}
+                          >
+                            💾 Salvar Alterações
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-mini btn-mini-cancel"
+                            onClick={() => setIsEditingStory(false)}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </>
+                    ) : storyDraft.trim() ? (
+                      /* MODO LEITURA LIMPO PARA TODOS OS USUÁRIOS */
+                      <div className="ai-result ai-markdown-body" style={{ marginTop: 0 }}>
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p>{processMarkdownChildren(children)}</p>,
+                            li: ({ children }) => <li>{processMarkdownChildren(children)}</li>
+                          }}
+                        >
+                          {storyDraft}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="car-story-empty">
+                        <span>🚗 Miniatura catalogada no acervo. História em processo de curadoria.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+
+              {/* TELA 3: FOTO DO CARRINHO + LINKS MINIATURAS RELACIONADAS */}
+              {carModalTab === 'relacionadas' && (
+                <div className="car-tab-panel animate-fade-in">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', marginBottom: '16px' }}>
+                    <div
+                      style={{ width: '70px', height: '70px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', cursor: 'zoom-in' }}
+                      onClick={() => setIsPhotoZoomOpen(true)}
+                      title="Toque para ampliar"
+                    >
+                      <CarImage car={selectedCar} className="modal-img" />
+                    </div>
+                    <div>
+                      <span className="card-badge">{selectedCar.categoria}</span>
+                      <h4 style={{ margin: '2px 0 0', fontSize: '1rem' }}>
+                        #{selectedCar.id} • {selectedCar.marca} {selectedCar.modelo}
+                      </h4>
+                      <small style={{ color: 'var(--text-muted)' }}>
+                        Miniaturas do acervo com características semelhantes:
+                      </small>
+                    </div>
+                  </div>
+
+                  {similarCars.length > 0 ? (
+                    <div className="related-cars-grid">
+                      {similarCars.map((sim) => (
+                        <div
+                          key={sim.id}
+                          className="related-car-card"
+                          onClick={() => navigateToCarById(sim.id)}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div className="related-car-thumb">
+                            <CarImage car={sim} />
+                          </div>
+                          <div className="related-car-info">
+                            <span className="card-id">#{sim.id}</span>
+                            <strong>{sim.marca} {sim.modelo}</strong>
+                            <small>{sim.categoria} • {sim.ano}</small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="car-story-empty">
+                      <span>Nenhuma miniatura adicional da mesma marca ou categoria encontrada no momento.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIGHTBOX DE ZOOM EM TELA CHEIA DA FOTO */}
+      {isPhotoZoomOpen && selectedCar && (
+        <div
+          className="photo-lightbox-overlay"
+          onClick={() => setIsPhotoZoomOpen(false)}
+        >
+          <div className="photo-lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="photo-lightbox-close"
+              aria-label="Fechar Zoom"
+              onClick={() => setIsPhotoZoomOpen(false)}
+            >
+              &times;
+            </button>
+            <div className="photo-lightbox-img-wrapper" onClick={() => setIsPhotoZoomOpen(false)}>
+              <CarImage car={selectedCar} className="photo-lightbox-img" />
+            </div>
+            <div className="photo-lightbox-caption">
+              <strong>#{selectedCar.id} • {selectedCar.marca} {selectedCar.modelo}</strong>
+              <span>({selectedCar.ano} • {selectedCar.categoria}) — Toque para fechar</span>
             </div>
           </div>
         </div>
