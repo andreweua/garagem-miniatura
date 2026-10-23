@@ -728,6 +728,86 @@ body {
   color: #0c0e12;
 }
 
+/* SPECS GRID MODERNO (UX LIMPA E VISUAL POLIDO) */
+.car-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.spec-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spec-card .spec-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.spec-card .spec-value {
+  font-size: 0.92rem;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.spec-card .spec-value.highlight {
+  color: #4ade80;
+}
+
+.car-story-clean-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.car-story-empty {
+  padding: 12px 14px;
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.similar-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.similar-pill-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.similar-pill-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
 .similar-section {
   margin-top: 16px;
   padding-top: 12px;

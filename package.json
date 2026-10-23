@@ -1,7 +1,7 @@
 {
   "name": "garagem-miniatura",
   "private": true,
-  "version": "2.8.0",
+  "version": "2.9.0",
   "type": "module",
   "description": "App Multiplataforma Nativo (Android + iOS) e PWA com Live Over-The-Air (OTA) - Catálogo interativo, Painel de Curadoria com PIN, Fila de Moderação e Câmera de Estúdio 4:3 (PereiraLabs)",
   "scripts": {

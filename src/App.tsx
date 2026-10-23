@@ -1343,41 +1343,49 @@ export default function App() {
       ...prev.slice(0, 49)
     ]);
 
-    const prompt = `Você é um curador especialista em réplicas de automóveis e miniaturas.
-Analise detalhadamente a foto desta miniatura e compare com a lista dos ${allCars.length} veículos deste acervo:
-${allCars.map((c) => `#${c.id} . ${c.marca} ${c.modelo} (${c.ano})`).join('; ')}
+    const compactCatalog = allCars
+      .map((c) => `#${c.id} ${c.marca} ${c.modelo} (${c.ano})`)
+      .join('; ');
+
+    const prompt = `Você é um curador especialista em réplicas die-cast e miniaturas de automóveis.
+Analise a foto desta miniatura e compare com a lista do acervo existente:
+${compactCatalog}
 
 Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem repetir parágrafos), estruturado exatamente em:
 - **Veículo Identificado:** Marca, Modelo, Ano aproximado e Categoria.
-- **História e Curiosidades:** Breve histórico automotivo do modelo real e detalhes da miniatura.
-- **Status no Acervo:** Se já existir na lista acima, cite no formato exato "#ID . Marca Modelo" (ex.: "#1 . Mercedes-Benz 500 SL"). Se não existir no catálogo, escreva explicitamente "Possível Nova Aquisição" e liste até 2 modelos similares do acervo usando "#ID . Marca Modelo".`;
+- **História e Curiosidades:** Resumo histórico do modelo real e detalhes da miniatura (cor, rodas, decais).
+- **Status no Acervo:** Se já existir na lista acima, cite no formato "#ID . Marca Modelo" (ex.: "#1 . Mercedes-Benz 500 SL"). Se não existir no catálogo, escreva explicitamente "Possível Nova Aquisição" e cite até 2 modelos similares usando "#ID . Marca Modelo".`;
 
     try {
       const ai = new GoogleGenAI({ apiKey: key });
-      const interaction = await ai.interactions.create({
-        model: 'gemini-3.8-flash',
-        input: [
-          { type: 'text', text: prompt },
-          {
-            type: 'image',
-            data: selectedImageBase64,
-            mime_type: selectedImageMime as
-              | 'image/jpeg'
-              | 'image/png'
-              | 'image/webp'
-              | 'image/heic'
-              | 'image/heif'
-          }
-        ]
-      });
+      let rawResponse = '';
+      const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+      let lastErr: unknown = null;
 
-      const interactionRecord = interaction as unknown as {
-        output_text?: string;
-        outputs?: Array<{ type?: string; text?: string }>;
-      };
-      const rawResponse =
-        interactionRecord.output_text ||
-        interactionRecord.outputs?.find((o) => o.type === 'text')?.text;
+      for (const m of candidateModels) {
+        try {
+          const response = await ai.models.generateContent({
+            model: m,
+            contents: [
+              prompt,
+              {
+                inlineData: {
+                  data: selectedImageBase64,
+                  mimeType: (selectedImageMime || 'image/jpeg') as string
+                }
+              }
+            ]
+          });
+          rawResponse = response.text || '';
+          if (rawResponse) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!rawResponse && lastErr) {
+        throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+      }
 
       if (!rawResponse) {
         throw new Error('A IA não gerou candidatos de resposta.');
@@ -1692,10 +1700,10 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         </div>
       </section>
 
-      {/* MODAL DETALHES DO CARRO + HISTÓRIA FORMATADA + SIMILARES */}
+      {/* MODAL DETALHES DO CARRO (MODERNO, LIMPO E FOCO EM UX) */}
       {selectedCar && (
         <div className="modal-overlay" onClick={() => setSelectedCar(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content modal-car-detail" onClick={(e) => e.stopPropagation()}>
             <button
               className="close-btn"
               aria-label="Fechar"
@@ -1707,68 +1715,86 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               <div className="modal-image-wrapper">
                 <CarImage car={selectedCar} className="modal-img" />
               </div>
-              <h2>
-                {selectedCar.marca} {selectedCar.modelo}
-              </h2>
-              <div className="detail-row">
-                <span>Número no Acervo:</span> <strong>#{selectedCar.id}</strong>
-              </div>
-              <div className="detail-row">
-                <span>Ano de Fabricação:</span> <strong>{selectedCar.ano}</strong>
-              </div>
-              <div className="detail-row">
-                <span>Categoria:</span> <strong>{selectedCar.categoria}</strong>
-              </div>
-              <div className="detail-row">
-                <span>Fabricante da Miniatura:</span>{' '}
-                <strong>{selectedCar.fabricante}</strong>
-              </div>
-              {selectedCar.escala && (
-                <div className="detail-row">
-                  <span>Escala da Miniatura:</span>{' '}
-                  <strong>{selectedCar.escala}</strong>
-                </div>
-              )}
-              {selectedCar.precoCompra && (
-                <div className="detail-row">
-                  <span>Preço de Compra:</span>{' '}
-                  <strong style={{ color: '#4ade80' }}>{selectedCar.precoCompra}</strong>
-                </div>
-              )}
 
-              <div className="story-section">
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '10px',
-                    flexWrap: 'wrap'
-                  }}
-                >
-                  <h3 style={{ margin: 0 }}>📖 História / Descrição da Miniatura</h3>
-                  {storyDraft.trim() && (
-                    <button
-                      type="button"
-                      className="btn-mini btn-mini-cancel"
-                      onClick={() => {
-                        if (isEditingStory) {
-                          setStoryDraft((prev) => cleanAiMarkdownText(prev));
-                          setIsEditingStory(false);
-                        } else {
-                          setIsEditingStory(true);
-                        }
-                      }}
-                    >
-                      {isEditingStory ? '✨ Ver Formatado' : '✏️ Editar Texto'}
-                    </button>
+              <div style={{ marginTop: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <span className="card-badge">{selectedCar.categoria}</span>
+                  <span className="card-id">#{selectedCar.id}</span>
+                  {selectedCar.ano && selectedCar.ano !== '—' && (
+                    <span className="card-year">📅 {selectedCar.ano}</span>
                   )}
                 </div>
+                <h2 style={{ margin: '4px 0 10px', fontSize: '1.45rem', letterSpacing: '-0.3px' }}>
+                  {selectedCar.marca} {selectedCar.modelo}
+                </h2>
+              </div>
 
-                {/* Exibe APENAS o texto formatado quando há conteúdo e não está em edição manual (sem duplicar com textarea) */}
-                {storyDraft.trim() && !isEditingStory ? (
-                  <>
+              {/* SPECS GRID MODERNO E LIMPO */}
+              <div className="car-specs-grid">
+                <div className="spec-card">
+                  <span className="spec-label">Fabricante</span>
+                  <strong className="spec-value">{selectedCar.fabricante || '—'}</strong>
+                </div>
+                <div className="spec-card">
+                  <span className="spec-label">Escala</span>
+                  <strong className="spec-value">{selectedCar.escala || '1:64'}</strong>
+                </div>
+                {selectedCar.precoCompra && (
+                  <div className="spec-card">
+                    <span className="spec-label">Preço de Compra</span>
+                    <strong className="spec-value highlight">{selectedCar.precoCompra}</strong>
+                  </div>
+                )}
+              </div>
+
+              {/* HISTÓRIA E DESCRIÇÃO (MODO LEITURA LIMPO) */}
+              {storyDraft.trim() ? (
+                <div className="car-story-clean-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#93c5fd' }}>
+                      📖 História &amp; Curiosidades
+                    </h3>
+                    {isCuratorUnlocked && (
+                      <button
+                        type="button"
+                        className="btn-mini btn-mini-cancel"
+                        onClick={() => setIsEditingStory(!isEditingStory)}
+                      >
+                        {isEditingStory ? 'Cancelar' : '✏️ Editar'}
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingStory ? (
+                    <>
+                      <textarea
+                        className="story-textarea"
+                        value={storyDraft}
+                        onChange={(e) => setStoryDraft(e.target.value)}
+                        rows={6}
+                      />
+                      <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          style={{ fontSize: '0.82rem', padding: '6px 14px' }}
+                          onClick={() => {
+                            handleSaveStory(selectedCar);
+                            setIsEditingStory(false);
+                          }}
+                        >
+                          💾 Salvar Alterações
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-mini btn-mini-cancel"
+                          onClick={() => setIsEditingStory(false)}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </>
+                  ) : (
                     <div className="ai-result ai-markdown-body" style={{ marginTop: 0 }}>
                       <ReactMarkdown
                         components={{
@@ -1779,83 +1805,29 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                         {storyDraft}
                       </ReactMarkdown>
                     </div>
-                    <div className="ia-report-meta" style={{ marginTop: '8px' }}>
-                      {stories[selectedCar.id]?.story === storyDraft.trim() ||
-                      (!stories[selectedCar.id]?.story && selectedCar.historia === storyDraft.trim()) ? (
-                        <span>
-                          ✅ História gravada no card #{selectedCar.id}
-                        </span>
-                      ) : (
-                        <span>
-                          ✨ Texto já formatado — clique em{' '}
-                          <strong>Salvar História</strong> para gravar no card
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        className="btn-mini btn-mini-cancel"
-                        onClick={() =>
-                          handleDownloadIaReport(
-                            {
-                              id: `car-${selectedCar.id}`,
-                              filePath: `src/data/ia_reports/car-${selectedCar.id}-${selectedCar.marca
-                                .toLowerCase()
-                                .replace(/[^a-z0-9]+/g, '-')}.json`,
-                              createdAt:
-                                stories[selectedCar.id]?.updatedAt ||
-                                new Date().toISOString(),
-                              matchedCarId: selectedCar.id,
-                              isNewAcquisition: false,
-                              detectedVehicleName: `#${selectedCar.id} ${selectedCar.marca} ${selectedCar.modelo}`,
-                              cleanMarkdown: storyDraft
-                            },
-                            'txt'
-                          )
-                        }
-                      >
-                        ⬇️ Baixar .txt
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <textarea
-                    className="story-textarea"
-                    placeholder="Adicione curiosidades, estado de conservação, história do modelo ou referências (ex.: #1 . Mercedes-Benz 500 SL)..."
-                    value={storyDraft}
-                    onChange={(e) => setStoryDraft(e.target.value)}
-                  />
-                )}
-
-                <div className="story-actions">
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={() => handleSaveStory(selectedCar)}
-                  >
-                    💾 Salvar História
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-dev-report"
-                    onClick={() => handleSendCopyToDeveloper('file-and-email')}
-                  >
-                    📤 Enviar Cópia para o Desenvolvedor
-                  </button>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="car-story-empty">
+                  <span>🚗 Miniatura catalogada no acervo. História em processo de curadoria.</span>
+                </div>
+              )}
 
+              {/* MINIATURAS SIMILARES (CHIPS HORIZONTAIS LIMPOS) */}
               {similarCars.length > 0 && (
-                <div className="similar-section">
-                  <h3>🔗 Miniaturas Similares no Acervo</h3>
-                  <div className="similar-links">
+                <div style={{ marginTop: '16px' }}>
+                  <h4 style={{ margin: '0 0 6px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    🔗 Miniaturas Relacionadas
+                  </h4>
+                  <div className="similar-pills-row">
                     {similarCars.map((sim) => (
                       <button
                         key={sim.id}
                         type="button"
-                        className="car-ref-link"
+                        className="similar-pill-btn"
                         onClick={() => navigateToCarById(sim.id)}
                       >
-                        #{sim.id} . {sim.marca} {sim.modelo}
+                        #{sim.id} {sim.marca} {sim.modelo}
                       </button>
                     ))}
                   </div>
@@ -1881,7 +1853,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               &times;
             </button>
             <div className="ai-modal-header">
-              <span className="ai-badge">Google Gemini 3.8 Flash</span>
+              <span className="ai-badge">Google Gemini 2.5 Flash</span>
               <h2>🔍 Comparador com o Acervo</h2>
               <p>Tire uma foto ou carregue um arquivo para comparar com a coleção.</p>
             </div>
@@ -1976,7 +1948,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
             </div>
 
             {aiLoading && (
-              <div className="ai-status">⏳ Analisando com gemini-3.8-flash...</div>
+              <div className="ai-status">⏳ Analisando com Google Gemini 2.5 Flash...</div>
             )}
             {aiError && (
               <div className="ai-status error">
@@ -2023,55 +1995,72 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                   </div>
                 )}
 
-                {/* 3. Inteligência de Vínculo de Coleção */}
+                {/* 3. Inteligência de Vínculo de Coleção & Curadoria */}
                 {aiLinkAnalysis?.matchedCar ? (
-                  <div className="collection-match-card">
-                    <div className="collection-match-header">
-                      <span>
-                        ✅ Veículo identificado no acervo: #
-                        {aiLinkAnalysis.matchedCar.id} .{' '}
-                        {aiLinkAnalysis.matchedCar.marca}{' '}
-                        {aiLinkAnalysis.matchedCar.modelo}
-                      </span>
+                  <div className="collection-match-card" style={{ padding: '14px', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>🛡️</span>
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#93c5fd', fontSize: '0.95rem' }}>
+                          Veículo Identificado: #{aiLinkAnalysis.matchedCar.id} • {aiLinkAnalysis.matchedCar.marca} {aiLinkAnalysis.matchedCar.modelo}
+                        </div>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                          Esta análise foi gravada e enviada automaticamente para a <strong>Fila de Moderação da Curadoria</strong>. O Curador pode revisar, ajustar e aprovar o texto para o catálogo oficial.
+                        </p>
+                      </div>
                     </div>
-                    {!stories[aiLinkAnalysis.matchedCar.id]?.story ? (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
                       <button
                         type="button"
-                        className="btn-save-card-story"
+                        className="btn-primary"
+                        style={{ fontSize: '0.82rem', padding: '6px 14px' }}
+                        onClick={() => {
+                          setAiModalOpen(false);
+                          setCuratorModalOpen(true);
+                        }}
+                      >
+                        🛡️ Abrir Fila da Curadoria
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-mini btn-mini-cancel"
+                        style={{ fontSize: '0.82rem', padding: '6px 14px' }}
                         onClick={() => {
                           const target = aiLinkAnalysis.matchedCar!;
-                          handleSaveStory(target, aiResult);
+                          setAiModalOpen(false);
                           navigateToCarById(target.id);
                         }}
                       >
-                        💾 Salvar História no Card do Veículo
+                        🚗 Ver Miniatura no Catálogo
                       </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn-save-card-story"
-                        onClick={() => {
-                          const target = aiLinkAnalysis.matchedCar!;
-                          handleSaveStory(target, aiResult);
-                          navigateToCarById(target.id);
-                        }}
-                      >
-                        🔄 Salvar História no Card do Veículo (Atualizar)
-                      </button>
-                    )}
+                    </div>
                   </div>
                 ) : (
-                  <div className="recommendation-card">
-                    <span className="wishlist-badge">🌟 Lista de Desejos • Inédito</span>
-                    <div className="recommendation-title">
-                      Sugestão de Próxima Compra para o Acervo
+                  <div className="recommendation-card" style={{ padding: '14px', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>🌟</span>
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#facc15', fontSize: '0.95rem' }}>
+                          Sugestão de Próxima Compra • Inédito no Acervo
+                        </div>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                          O modelo ({aiLinkAnalysis?.detectedName || 'analisado'}) ainda não consta no acervo de {allCars.length} veículos e foi enviado para a moderação como recomendação de nova aquisição.
+                        </p>
+                      </div>
                     </div>
-                    <p className="recommendation-desc">
-                      Este modelo ({aiLinkAnalysis?.detectedName || 'analisado'}) ainda não
-                      consta entre os {CARS_DATA.length} carrinhos catalogados e foi
-                      registrado no histórico de relatórios (
-                      <code>src/data/ia_reports/</code>) como recomendação de aquisição.
-                    </p>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ fontSize: '0.82rem', padding: '6px 14px' }}
+                        onClick={() => {
+                          setAiModalOpen(false);
+                          setCuratorModalOpen(true);
+                        }}
+                      >
+                        🛡️ Ver na Curadoria
+                      </button>
+                    </div>
                   </div>
                 )}
               </>
@@ -2101,7 +2090,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               <h3>🔑 Chave da API Google Gemini</h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
                 Insira sua chave do Google AI Studio para habilitar o reconhecimento de
-                miniaturas com o modelo <code>gemini-3.8-flash</code>.
+                miniaturas com o modelo <code>gemini-2.5-flash</code>.
               </p>
               <div className="key-container">
                 <input
