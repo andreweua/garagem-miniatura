@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { App as CapacitorApp } from '@capacitor/app';
 import { GoogleGenAI } from '@google/genai';
@@ -610,20 +610,43 @@ export default function App() {
     return marcas.size;
   }, [allCars]);
 
-  const filteredCars = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    return allCars.filter((car) => {
-      const carStory = (stories[car.id]?.story || car.historia || '').toLowerCase();
-      const matchText =
-        car.modelo.toLowerCase().includes(q) ||
-        car.marca.toLowerCase().includes(q) ||
-        String(car.ano).includes(q) ||
-        `#${car.id}` === q ||
-        carStory.includes(q);
-      const matchCategory = categoryFilter === 'todos' || car.categoria === categoryFilter;
-      return matchText && matchCategory;
+  // Otimização de busca instantânea (sem engasgos no mobile ao digitar)
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  const indexedCars = useMemo(() => {
+    return allCars.map((car) => {
+      const rawStory = stories[car.id]?.story || car.historia || '';
+      const cleanPreview = rawStory ? stripMarkdownPreview(rawStory) : '';
+      const haystack = `${car.id} #${car.id} ${car.marca} ${car.modelo} ${car.fabricante || ''} ${car.ano} ${car.categoria} ${rawStory}`.toLowerCase();
+      return {
+        car,
+        haystack,
+        cleanPreview
+      };
     });
-  }, [searchQuery, categoryFilter, stories, allCars]);
+  }, [allCars, stories]);
+
+  const storyPreviewMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const item of indexedCars) {
+      if (item.cleanPreview) {
+        map.set(item.car.id, item.cleanPreview);
+      }
+    }
+    return map;
+  }, [indexedCars]);
+
+  const filteredCars = useMemo(() => {
+    const q = deferredSearchQuery.toLowerCase().trim();
+    return indexedCars
+      .filter((item) => {
+        const matchCategory = categoryFilter === 'todos' || item.car.categoria === categoryFilter;
+        if (!matchCategory) return false;
+        if (!q) return true;
+        return item.haystack.includes(q);
+      })
+      .map((item) => item.car);
+  }, [indexedCars, deferredSearchQuery, categoryFilter]);
 
   const similarCars = useMemo(() => {
     if (!selectedCar) return [];
@@ -916,6 +939,12 @@ export default function App() {
 
     if (syncedChannels.length > 0) {
       setSyncStatusMsg(`☁️ Sincronizado em 2º plano via: ${syncedChannels.join(' + ')}`);
+      try {
+        const stored = JSON.parse(localStorage.getItem('garagem_synced_reports') || '[]');
+        const set = new Set(stored);
+        set.add(`ia-${entry.id || entry.createdAt}`);
+        localStorage.setItem('garagem_synced_reports', JSON.stringify([...set]));
+      } catch {}
     } else {
       setSyncStatusMsg('💾 Relatório e foto interceptados (salvos localmente no dispositivo).');
     }
@@ -1193,6 +1222,51 @@ export default function App() {
       } catch {}
       return updated;
     });
+  };
+
+  const handleSyncCloudReports = async (): Promise<number> => {
+    const wsUrl = CURATOR_ENDPOINTS.WORKSPACE_APPS_SCRIPT_URL.trim();
+    if (!wsUrl) return 0;
+    try {
+      const res = await fetch(wsUrl, { method: 'GET' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.reports)) {
+        const existingIds = new Set(iaReports.map((r) => r.id));
+        const newReports: IaReportEntry[] = [];
+        for (const r of data.reports) {
+          if (r && r.id && !existingIds.has(r.id)) {
+            existingIds.add(r.id);
+            newReports.push(r);
+          }
+        }
+        if (newReports.length > 0) {
+          setIaReports((prev) => [...newReports, ...prev]);
+        }
+        return newReports.length;
+      }
+    } catch (err) {
+      console.warn('Erro ao consultar Google Apps Script (GET):', err);
+      throw err;
+    }
+    return 0;
+  };
+
+  const handleImportJsonReports = (imported: IaReportEntry[]) => {
+    const existingIds = new Set(iaReports.map((r) => r.id));
+    const newReports: IaReportEntry[] = [];
+    for (const r of imported) {
+      if (r && r.id && !existingIds.has(r.id)) {
+        existingIds.add(r.id);
+        newReports.push(r);
+      }
+    }
+    if (newReports.length > 0) {
+      setIaReports((prev) => [...newReports, ...prev]);
+      alert(`🎉 ${newReports.length} novo(s) relatório(s) importado(s) para a Moderação!`);
+    } else {
+      alert('ℹ️ Nenhum relatório novo encontrado no arquivo selecionado.');
+    }
   };
 
   const handleStudioCameraCapture = async (fullDataUrl: string) => {
@@ -1507,7 +1581,6 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                     userChoice: null,
                     comment: ''
                   };
-                  const carStory = stories[car.id]?.story || car.historia;
                   const isDislikeBoxOpen = openDislikeId === car.id;
 
                   return (
@@ -1538,9 +1611,9 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                         >
                           <div className="card-brand">{car.marca}</div>
                           <h2 className="card-title">{car.modelo}</h2>
-                          {carStory && (
+                          {storyPreviewMap.get(car.id) && (
                             <p className="card-story-preview">
-                              📝 {stripMarkdownPreview(carStory)}
+                              📝 {storyPreviewMap.get(car.id)}
                             </p>
                           )}
                         </div>
@@ -2178,6 +2251,8 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         stories={stories}
         apiKey={apiKey}
         setApiKey={setApiKey}
+        onSyncCloudReports={handleSyncCloudReports}
+        onImportJsonReports={handleImportJsonReports}
       />
 
       {/* CÂMERA DE ESTÚDIO PARA O SCANNER IA */}

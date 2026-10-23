@@ -17,9 +17,13 @@ interface CuratorModalProps {
   apiKey: string;
   setApiKey: (key: string) => void;
   onOpenStudioCameraForNewCar?: () => void;
+  onSyncCloudReports?: () => Promise<number>;
+  onImportJsonReports?: (importedReports: IaReportEntry[]) => void;
 }
 
 const DEFAULT_PIN = '2026';
+const GOOGLE_DRIVE_FOLDER_URL =
+  'https://drive.google.com/drive/folders/17WD1UUtoSJFzGqfTWDnZVzCOajzZYfUk?usp=sharing';
 
 export function CuratorModal({
   isOpen,
@@ -33,11 +37,17 @@ export function CuratorModal({
   onDiscardReport,
   stories,
   apiKey,
-  setApiKey
+  setApiKey,
+  onSyncCloudReports,
+  onImportJsonReports
 }: CuratorModalProps) {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
   const [activeTab, setActiveTab] = useState<'moderation' | 'add_car' | 'studio' | 'audit'>('moderation');
+
+  // Sincronização com o Google Drive
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+  const [syncCloudMsg, setSyncCloudMsg] = useState<string | null>(null);
 
   // Estado para cadastro de novo veículo
   const nextCarId = Math.max(0, ...allCars.map((c) => c.id)) + 1;
@@ -64,6 +74,46 @@ export function CuratorModal({
 
   // Filtro na fila de moderação
   const [queueFilter, setQueueFilter] = useState<'todos' | 'novos' | 'existentes'>('todos');
+
+  const handleSyncCloud = async () => {
+    if (!onSyncCloudReports) return;
+    setIsSyncingCloud(true);
+    setSyncCloudMsg('Consultando pasta do Google Drive...');
+    try {
+      const count = await onSyncCloudReports();
+      if (count > 0) {
+        setSyncCloudMsg(`✅ ${count} novo(s) relatório(s) sincronizado(s) do Google Drive com sucesso!`);
+      } else {
+        setSyncCloudMsg('ℹ️ A fila de moderação já contém todos os relatórios do Google Drive.');
+      }
+    } catch {
+      setSyncCloudMsg('⚠️ Dica: Você também pode importar direto os arquivos .json baixados do Drive pelo botão "Importar JSON".');
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
+
+  const handleJsonFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = String(ev.target?.result || '');
+        const parsed = JSON.parse(text);
+        const list = Array.isArray(parsed)
+          ? parsed
+          : (parsed.reports || [parsed.content || parsed]);
+        if (onImportJsonReports) {
+          onImportJsonReports(list);
+          setSyncCloudMsg(`✅ Relatório importado de ${file.name}!`);
+        }
+      } catch {
+        alert('Erro ao ler arquivo JSON. Verifique se é um arquivo de relatório válido.');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   if (!isOpen) return null;
 
@@ -292,6 +342,84 @@ Identifique o veículo e responda ESTRITAMENTE em formato JSON (sem blocos markd
                 {/* ABA 1: FILA DE MODERAÇÃO */}
                 {activeTab === 'moderation' && (
                   <div className="curator-section">
+                    {/* BARRA DE FERRAMENTAS DA NUVEM (GOOGLE DRIVE / APPS SCRIPT) */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '14px',
+                        padding: '10px 12px',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ padding: '6px 12px', fontSize: '13px' }}
+                        onClick={handleSyncCloud}
+                        disabled={isSyncingCloud}
+                      >
+                        {isSyncingCloud ? '⏳ Sincronizando...' : '🔄 Solicitar Atualização da Nuvem'}
+                      </button>
+
+                      <label
+                        className="btn-mini"
+                        style={{
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '6px 10px',
+                          margin: 0,
+                          fontSize: '13px'
+                        }}
+                        title="Importar relatórios (.json) gerados em outro celular ou salvos no Drive"
+                      >
+                        📁 Importar JSON
+                        <input
+                          type="file"
+                          accept=".json,application/json"
+                          onChange={handleJsonFileInput}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+
+                      <a
+                        href={GOOGLE_DRIVE_FOLDER_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-mini"
+                        style={{
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '6px 10px',
+                          fontSize: '13px'
+                        }}
+                      >
+                        📂 Abrir Pasta Drive ↗
+                      </a>
+                    </div>
+
+                    {syncCloudMsg && (
+                      <div
+                        style={{
+                          padding: '8px 12px',
+                          marginBottom: '12px',
+                          borderRadius: '6px',
+                          background: 'rgba(59, 130, 246, 0.15)',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          fontSize: '13px',
+                          color: '#93c5fd'
+                        }}
+                      >
+                        {syncCloudMsg}
+                      </div>
+                    )}
+
                     <div className="curator-filter-row">
                       <div className="queue-pills">
                         <button
@@ -321,7 +449,21 @@ Identifique o veículo e responda ESTRITAMENTE em formato JSON (sem blocos markd
                     {filteredReports.length === 0 ? (
                       <div className="curator-empty">
                         <span>✨</span>
-                        <p>A fila de moderação está limpa! Nenhuma sugestão pendente no momento.</p>
+                        <p>A fila de moderação local está vazia!</p>
+                        <p style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>
+                          Se as pesquisas foram feitas em outro celular (como no do seu pai),
+                          clique em <strong>"🔄 Solicitar Atualização da Nuvem"</strong> acima ou use <strong>"📁 Importar JSON"</strong>.
+                        </p>
+                        <div style={{ marginTop: '12px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={handleSyncCloud}
+                            disabled={isSyncingCloud}
+                          >
+                            {isSyncingCloud ? '⏳ Buscando no Drive...' : '🔄 Sincronizar Agora'}
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="moderation-list">
