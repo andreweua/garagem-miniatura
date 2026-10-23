@@ -2,7 +2,7 @@ import type { CarItem } from '../types/car';
 
 export const CARS_DATA: CarItem[] = [
   {"id":1,"marca":"Mercedes-Benz","modelo":"500 SL (R129)","ano":"1989","fabricante":"—","categoria":"Esportivo","icon":"🏎️","foto":"img/1.jpg","escala":"1:18","precoCompra":"R$ 180,00"},
-  {"id":2,"marca":"Peugeot","modelo":"505 Sedan Taxi (Yellow Cab)","ano":"1979","fabricante":"Majorette","categoria":"Viatura / Serviço","icon":"🚕","foto":""},
+  {"id":2,"marca":"Táxi Americano","modelo":"Yellow Cab","ano":"Anos 80","fabricante":"—","categoria":"Viatura / Serviço","icon":"🚕","foto":""},
   {"id":3,"marca":"Gurgel","modelo":"Itaipu E-400 Telerj Rio de Janeiro Cpt","ano":"1976","fabricante":"Welly","categoria":"Nacional","icon":"🚗","foto":""},
   {"id":4,"marca":"Ford","modelo":"'32 Ford Victoria (Vicky Hot Rod)","ano":"1932","fabricante":"—","categoria":"Clássico","icon":"🚗","foto":""},
   {"id":5,"marca":"Fiat","modelo":"Idea","ano":"2003","fabricante":"—","categoria":"Nacional","icon":"🚗","foto":""},
