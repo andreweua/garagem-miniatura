@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { GoogleGenAI } from '@google/genai';
 import pkg from '../package.json';
@@ -235,7 +236,77 @@ function CarImage({ car, className }: { car: CarItem; className?: string }) {
   );
 }
 
+interface RuntimePlatform {
+  type: 'android' | 'ios' | 'pwa' | 'web';
+  label: string;
+  icon: string;
+  version: string;
+  build?: string;
+  description: string;
+}
+
 export default function App() {
+  const [runtimePlatform, setRuntimePlatform] = useState<RuntimePlatform>(() => {
+    const capPlatform = Capacitor.getPlatform();
+    const isStandalone = typeof window !== 'undefined' && (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true
+    );
+
+    if (capPlatform === 'android') {
+      return {
+        type: 'android',
+        label: 'Android APK',
+        icon: '🤖',
+        version: pkg.version,
+        description: 'App Nativo Android (.apk)'
+      };
+    }
+    if (capPlatform === 'ios') {
+      return {
+        type: 'ios',
+        label: 'iOS App',
+        icon: '🍎',
+        version: pkg.version,
+        description: 'App Nativo Apple iOS'
+      };
+    }
+    if (isStandalone) {
+      return {
+        type: 'pwa',
+        label: 'PWA',
+        icon: '⚡',
+        version: pkg.version,
+        description: 'Progressive Web App instalado via navegador'
+      };
+    }
+    return {
+      type: 'web',
+      label: 'Web PWA',
+      icon: '🌐',
+      version: pkg.version,
+      description: 'Navegador Web com suporte PWA'
+    };
+  });
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.getInfo().then((info) => {
+        const capPlatform = Capacitor.getPlatform();
+        const isAndroid = capPlatform === 'android';
+        const nativeVer = info.version || pkg.version;
+        setRuntimePlatform({
+          type: isAndroid ? 'android' : 'ios',
+          label: isAndroid ? 'Android APK' : 'iOS App',
+          icon: isAndroid ? '🤖' : '🍎',
+          version: nativeVer,
+          build: info.build,
+          description: `Compilação Nativa Instalada: v${nativeVer} (Build ${info.build || '1'})`
+        });
+      }).catch(() => {});
+    }
+  }, []);
+
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('garagem_theme');
     return saved === 'light' ? 'light' : 'dark';
@@ -1436,7 +1507,14 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
             <span className="logo-text">
               Garagem<span>Miniatura</span>
             </span>
-            <span className="version-tag">v{pkg.version}</span>
+            <span
+              className="version-tag"
+              title={`${runtimePlatform.description} — Toque para detalhes`}
+              onClick={() => alert(`📦 Garagem em Miniatura\n\n• Plataforma: ${runtimePlatform.label}\n• Versão Instalada: v${runtimePlatform.version}${runtimePlatform.build ? ` (Build ${runtimePlatform.build})` : ''}\n• Tipo: ${runtimePlatform.description}\n\nNota: Para atualizar a versão do app nativo (APK), é necessário baixar o novo arquivo .apk no GitHub Releases.`)}
+              style={{ cursor: 'pointer' }}
+            >
+              {runtimePlatform.icon} {runtimePlatform.label} v{runtimePlatform.version}
+            </span>
             {isCuratorUnlocked && (
               <button
                 type="button"
@@ -2305,7 +2383,9 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
             <div className="about-header">
               <span className="badge">Documentação Técnica</span>
               <h2>🏎️ Garagem em Miniatura</h2>
-              <p className="app-subtitle">Controlador da Aplicação v{pkg.version}</p>
+              <p className="app-subtitle">
+                Controlador da Aplicação • {runtimePlatform.icon} {runtimePlatform.label} v{runtimePlatform.version}
+              </p>
             </div>
             <div className="about-body">
               <h3>📋 Visão Geral</h3>
@@ -2379,7 +2459,9 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         <div className="container footer-content">
           <div className="footer-brand">
             <h3>Garagem em Miniatura</h3>
-            <p className="app-subtitle">Controlador da Aplicação v{pkg.version}</p>
+            <p className="app-subtitle">
+              Controlador da Aplicação • {runtimePlatform.icon} {runtimePlatform.label} v{runtimePlatform.version}
+            </p>
             <p className="collection-desc">
               Organização, catalogação interativa e preservação histórica de acervo de
               veículos em miniatura.
