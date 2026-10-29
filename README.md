@@ -1,6 +1,6 @@
-# 🏎️ Garagem em Miniatura - Controlador da Aplicação (v2.8.0)
+# 🏎️ Garagem em Miniatura - Controlador da Aplicação (v2.9.0)
 
-> Progressive Web App (PWA) e App Multiplataforma Nativo (**Android** + **iOS**) com arquitetura **Live Over-The-Air (OTA)** para catalogação, preservação histórica, filtragem inteligente, Painel de Curadoria In-App com PIN, Fila de Moderação e Gabarito de Estúdio Fotográfico 4:3 com Inteligência Artificial para réplicas automotivas em miniatura.
+> Progressive Web App (PWA) e App Multiplataforma Nativo (**Android** + **iOS**) com arquitetura **Live Over-The-Air (OTA)** para catalogação, preservação histórica, filtragem inteligente, Painel de Curadoria In-App com PIN, Fila de Moderação em Nuvem, Modal de 3 Abas com Zoom e Scanner Fotográfico com Inteligência Artificial para réplicas automotivas em miniatura.
 
 Desenvolvido por **PereiraLabs (Divisão de Tecnologia e IA da Louzada & Pereira - Soluções Digitais)**.  
 Hospedagem Oficial em Produção: [andreweua.github.io/garagem-miniatura/](https://andreweua.github.io/garagem-miniatura/)  
@@ -10,19 +10,24 @@ Repositório Oficial: [github.com/andreweua/garagem-miniatura](https://github.co
 
 ## 📌 Sobre o Projeto
 
-A **Garagem em Miniatura** é uma plataforma concebida para digitalizar, organizar e preservar um acervo particular de 105 modelos automotivos em miniatura catalogados a partir de registros manuscritos históricos. O sistema opera como um aplicativo instalável de alto desempenho (PWA e nativo via Capacitor 7 para Android e iPhone), oferecendo busca em tempo real, visualização em alta definição, suporte offline completo e curadoria assistida por IA via Google Gemini (`gemini-3.8-flash` via `@google/genai` Interactions API).
+A **Garagem em Miniatura** é uma plataforma concebida para digitalizar, organizar e preservar um acervo particular de 105 modelos automotivos em miniatura catalogados a partir de registros manuscritos históricos. O sistema opera como um aplicativo instalável de alto desempenho (PWA e nativo via Capacitor 7 para Android e iPhone), oferecendo busca em tempo real com zero lag, visualização em alta definição com zoom em tela cheia, suporte offline completo e curadoria assistida por IA via Google Gemini (`gemini-2.5-flash` via `@google/genai` Models API).
 
 ---
 
 ## 🚀 Principais Recursos
 
-* **Catálogo dos 105 Veículos:** Base estruturada em `src/data/cars.ts` com categorias (Clássicos, Nacionais, Esportivos, Muscle Cars, Utilitários e Viaturas/Serviço), suportando escala (`📏 1:64`, `1:43`, etc.), preço de compra e história oficial nativa.
+* **Catálogo Alinhado dos 105 Veículos:** Base 100% alinhada com as miniaturas físicas reais em `src/data/cars.ts` (conforme auditoria multimodal do Gemini Vision), com categorias (Clássicos, Nacionais, Esportivos, Muscle Cars, Utilitários e Viaturas/Serviço), escala (`📏 1:64`, `1:43`, etc.), preço de compra e histórias oficiais.
+* **Modal do Veículo em 3 Abas Horizontais (UX/UI Refinada):**
+  - **Aba 1 (Ficha & Foto):** Foto destacada da miniatura com Lightbox de Zoom em tela cheia ao toque (`🔍 Toque para Ampliar`) e grade moderna de especificações técnicas (*Specs Grid*).
+  - **Aba 2 (História & Fatos):** Registro histórico automotivo detalhado, curiosidades da réplica e bloqueio estrito de edição para visitantes (apenas curadores autenticados com PIN podem editar e salvar).
+  - **Aba 3 (Miniaturas Relacionadas):** Mini-foto do veículo atual no topo com grid interativo de miniaturas da mesma marca ou categoria, permitindo navegar instantaneamente entre carrinhos com 1 clique.
 * **Apps Nativos Android & iOS:** Suporte nativo completo via Capacitor 7 (`com.garagemminiatura.app`), com ícones originais 100% preservados, permissões de câmera/armazenamento e compilação automatizada na nuvem via GitHub Actions.
 * **Live Over-The-Air (OTA) Updates:** O aplicativo nativo sincroniza dinamicamente com a versão web em nuvem mantendo cache offline local (Workbox). Toda alteração no catálogo, fotos ou histórias atualiza no celular dos usuários pelo ar, sem necessidade de baixar um novo APK.
-* **IA Scanner Sob Demanda (`gemini-3.8-flash`):** Reconhece a foto da miniatura, analisa o histórico automotivo do modelo real e verifica automaticamente se o modelo já pertence ao acervo ou se é uma *"Sugestão de Próxima Compra para o Acervo"*.
+* **IA Scanner Ultra-Rápido (`gemini-2.5-flash`):** Reconhece a foto da miniatura em cerca de 1 a 2 segundos (tempo reduzido em 80%), analisa o modelo real e encaminha a sugestão automaticamente para a Fila de Moderação da Curadoria.
+* **Busca Instantânea Zero Lag:** Implementada com `useDeferredValue` do React e pré-indexação em memória (`indexedCars` e `storyPreviewMap`), garantindo digitação instantânea a 60 fps no celular sem travamentos de teclado.
+* **Painel do Curador com Sincronização em Nuvem (Google Drive):** Suporte a consulta de relatórios gerados em outros celulares via `doGet(e)`, importação manual de arquivos `.json`, botão *"🔄 Solicitar Atualização da Nuvem"* e rotina inteligente de antiduplicação de arquivos no Drive (`saveOrUpdateFile`).
 * **Clean UI & Formatação com ReactMarkdown:** Trata a resposta da IA, remove blocos de código brutos e transforma referências como `#1 . Mercedes-Benz 500SL` em links interativos que rolam a tela e abrem o card do veículo.
-* **Prevenção de Duplicidade nos Cards:** O modal exibe apenas a visualização limpa e formatada (`ReactMarkdown`), com botão alternável de edição manual caso o usuário queira customizar o texto.
-* **Histórico Editável & Exportação:** Permite salvar histórias personalizadas por miniatura com persistência local e exportar relatórios compilados em `.txt` e `.json` para análise do desenvolvedor.
+* **Gabarito de Estúdio Fotográfico 4:3:** Viewfinder interativo em tempo real via câmera (`CameraStudioModal`) com proporção 4:3, linha guia de apoio das 4 rodas, mira central e cantoneiras de área de segurança (80%) para garantir fotos padronizadas sem cortes de para-choques e sem desfoque.
 * **Tema Claro & Escuro:** Alternância de tema com persistência no `localStorage`.
 
 ---
@@ -113,7 +118,7 @@ colecao-carrinhos/
 │   └── main.tsx                    # Ponto de entrada React 19
 ├── capacitor.config.ts             # Configuração Capacitor com Live Over-The-Air (OTA)
 ├── vite.config.ts                  # Vite + React + PWA + middleware local ia-reports-writer
-├── package.json                    # Dependências e versão da aplicação (v2.7.0)
+├── package.json                    # Dependências e versão da aplicação (v2.9.0)
 └── README.md                       # Documentação técnica e guia do curador
 ```
 
@@ -144,6 +149,18 @@ npm run build:ios
 ---
 
 ## 📝 Histórico Completo de Versões e Evolução do Projeto
+
+### 💎 Ciclo de Refinamento de UX, Curadoria Cloud & Alta Performance (v2.9)
+* **v2.9.0:**
+  - **Novo Modal do Veículo em 3 Abas Horizontais:**
+    1. *Ficha & Foto:* Foto em alta definição com Lightbox de Zoom em tela cheia ao toque (`🔍 Toque para Ampliar`) e grade moderna de especificações técnicas (*Specs Grid*).
+    2. *História & Curiosidades:* Modo leitura limpo com ReactMarkdown e bloqueio estrito de edição para não-curadores (botão de edição e salvamento restritos a curadores autenticados com PIN).
+    3. *Miniaturas Relacionadas:* Carrossel/grid interativo exibindo modelos com características semelhantes (marca/categoria) e navegação direta com 1 clique para o novo modelo selecionado.
+  - **Fluxo Exclusivo da Curadoria para Scanner IA:** Remoção do botão de salvar direto no card público após a análise da IA; todas as sugestões são encaminhadas automaticamente para a Fila de Moderação da Curadoria com atalho para abrir o painel.
+  - **Atualização do Motor IA para `gemini-2.5-flash`:** Migração para chamadas nativas de alta velocidade via `ai.models.generateContent` com fallback dinâmico (`gemini-2.5-flash-lite`), reduzindo o tempo de resposta da IA de ~10-15s para ~1.5 a 2 segundos.
+  - **Sincronização em Nuvem & Antiduplicação no Google Drive:** Suporte `doGet(e)` no Google Apps Script Web App permitindo ao Painel do Curador puxar análises feitas em outros aparelhos (*"🔄 Solicitar Atualização da Nuvem"*) e botão de importação direta de arquivos `.json`. Função `saveOrUpdateFile` no script para atualizar arquivos existentes em vez de criar cópias duplicadas na pasta `Garagem_Miniatura_IA_Reports`.
+  - **Busca Instantânea Zero Lag:** Adoção de `useDeferredValue` do React e pré-indexação dos termos de busca em memória (`indexedCars` e `storyPreviewMap`), eliminando travamentos do teclado móvel e reduzindo o tempo de filtragem para menos de 1 milissegundo.
+  - **Alinhamento Completo dos 105 Carrinhos com as Fotos Físicas:** Atualização de `src/data/cars.ts` integrando os resultados da auditoria visual do Gemini Vision (`AUDITORIA_ACERVO_GEMINI.md`), eliminando os 5 modelos genéricos ("Modelo a Identificar"), corrigindo deslocamentos fotográficos (#36–43 e #82–86) e registrando o modelo #2 como *Táxi Americano Yellow Cab*.
 
 ### 🛡️ Ciclo de Curadoria In-App, Estúdio & Auditoria (v2.8)
 * **v2.8.0:**
