@@ -8,6 +8,9 @@ import { CARS_DATA } from './data/cars';
 import { CURATOR_ENDPOINTS } from './config/curatorEndpoints';
 import { CuratorModal } from './components/CuratorModal';
 import { CameraStudioModal } from './components/CameraStudioModal';
+import { UpdateNotificationModal } from './components/UpdateNotificationModal';
+import { playNotificationSound } from './utils/audioNotification';
+import { fetchLatestVersion, isNewerVersion, type RemoteVersionInfo } from './utils/versionChecker';
 import type {
   CarItem,
   CarCategory,
@@ -338,6 +341,65 @@ export default function App() {
     () => localStorage.getItem('garagem_curator_session') === 'true'
   );
   const [isScannerStudioCamOpen, setIsScannerStudioCamOpen] = useState(false);
+
+  // Notificação de Nova Versão (Visual e Sonora)
+  const [remoteUpdateInfo, setRemoteUpdateInfo] = useState<RemoteVersionInfo | null>(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [hasNewVersionPending, setHasNewVersionPending] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    // Checagem automática 2 segundos após inicialização
+    const timer = setTimeout(async () => {
+      try {
+        const latest = await fetchLatestVersion();
+        if (!isMounted || !latest) return;
+
+        const current = runtimePlatform.version || pkg.version;
+        if (isNewerVersion(current, latest.version)) {
+          setRemoteUpdateInfo(latest);
+          setHasNewVersionPending(true);
+
+          const dismissed = sessionStorage.getItem(`garagem_update_dismissed_${latest.version}`);
+          if (!dismissed) {
+            setIsUpdateModalOpen(true);
+            playNotificationSound();
+          }
+        }
+      } catch {
+        // Silencioso em caso de ausência de rede
+      }
+    }, 2000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [runtimePlatform.version]);
+
+  const handleManualCheckUpdates = async () => {
+    const latest = await fetchLatestVersion();
+    const current = runtimePlatform.version || pkg.version;
+
+    if (latest && isNewerVersion(current, latest.version)) {
+      setRemoteUpdateInfo(latest);
+      setHasNewVersionPending(true);
+      setIsUpdateModalOpen(true);
+      playNotificationSound();
+    } else {
+      playNotificationSound();
+      alert(
+        `✅ Aplicativo Atualizado!\n\n• Plataforma: ${runtimePlatform.label}\n• Versão Instalada: v${current}\n\nVocê já está na versão mais recente.`
+      );
+    }
+  };
+
+  const handleCloseUpdateModal = () => {
+    setIsUpdateModalOpen(false);
+    if (remoteUpdateInfo) {
+      sessionStorage.setItem(`garagem_update_dismissed_${remoteUpdateInfo.version}`, '1');
+    }
+  };
 
   // Veículos adicionados via curadoria (persistência local)
   const [customCars, setCustomCars] = useState<CarItem[]>(() => {
@@ -1508,12 +1570,24 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               Garagem<span>Miniatura</span>
             </span>
             <span
-              className="version-tag"
-              title={`${runtimePlatform.description} — Toque para detalhes`}
-              onClick={() => alert(`📦 Garagem em Miniatura\n\n• Plataforma: ${runtimePlatform.label}\n• Versão Instalada: v${runtimePlatform.version}${runtimePlatform.build ? ` (Build ${runtimePlatform.build})` : ''}\n• Tipo: ${runtimePlatform.description}\n\nNota: Para atualizar a versão do app nativo (APK), é necessário baixar o novo arquivo .apk no GitHub Releases.`)}
+              className={`version-tag ${hasNewVersionPending ? 'has-update' : ''}`}
+              title={
+                hasNewVersionPending
+                  ? `🚀 Nova versão disponível (${remoteUpdateInfo?.version})! Toque para ver detalhes`
+                  : `${runtimePlatform.description} — Toque para detalhes ou verificar atualizações`
+              }
+              onClick={() => {
+                if (hasNewVersionPending && remoteUpdateInfo) {
+                  setIsUpdateModalOpen(true);
+                  playNotificationSound();
+                } else {
+                  handleManualCheckUpdates();
+                }
+              }}
               style={{ cursor: 'pointer' }}
             >
               {runtimePlatform.icon} {runtimePlatform.label} v{runtimePlatform.version}
+              {hasNewVersionPending && <span className="update-ping" title="Nova versão disponível!"></span>}
             </span>
             {isCuratorUnlocked && (
               <button
@@ -1585,6 +1659,18 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               }}
             >
               📖 Sobre o Projeto
+            </button>
+            <button
+              type="button"
+              className="nav-btn-link"
+              onClick={() => {
+                setMenuOpen(false);
+                handleManualCheckUpdates();
+              }}
+              title="Verificar atualizações do aplicativo"
+            >
+              🔄 Atualizações
+              {hasNewVersionPending && <span className="update-ping"></span>}
             </button>
             <button
               type="button"
@@ -2453,6 +2539,17 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         onClose={() => setIsScannerStudioCamOpen(false)}
         onCapture={handleStudioCameraCapture}
         title="Gabarito de Estúdio — Scanner IA"
+      />
+
+      {/* NOTIFICAÇÃO DE NOVA VERSÃO (VISUAL E SONORA) */}
+      <UpdateNotificationModal
+        isOpen={isUpdateModalOpen}
+        onClose={handleCloseUpdateModal}
+        remoteInfo={remoteUpdateInfo}
+        currentVersion={runtimePlatform.version}
+        platformLabel={runtimePlatform.label}
+        platformType={runtimePlatform.type}
+        onPlaySoundAgain={playNotificationSound}
       />
 
       <footer className="footer" id="sobre">
