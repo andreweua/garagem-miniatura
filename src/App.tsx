@@ -1565,29 +1565,27 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
       <header className="header">
         <div className="container header-container">
           <div className="logo">
-            <span className="logo-icon">🏎️</span>
-            <span className="logo-text">
-              Garagem<span>Miniatura</span>
-            </span>
-            <span
-              className={`version-tag ${hasNewVersionPending ? 'has-update' : ''}`}
+            <button
+              type="button"
+              className="app-logo-btn"
+              onClick={() => {
+                setIsUpdateModalOpen(true);
+                playNotificationSound();
+              }}
               title={
                 hasNewVersionPending
-                  ? `🚀 Nova versão disponível (${remoteUpdateInfo?.version})! Toque para ver detalhes`
-                  : `${runtimePlatform.description} — Toque para detalhes ou verificar atualizações`
+                  ? `🚀 Atualização v${remoteUpdateInfo?.version} disponível! Toque para ver`
+                  : `Garagem em Miniatura (${runtimePlatform.label} v${runtimePlatform.version}) — Toque para detalhes`
               }
-              onClick={() => {
-                if (hasNewVersionPending && remoteUpdateInfo) {
-                  setIsUpdateModalOpen(true);
-                  playNotificationSound();
-                } else {
-                  handleManualCheckUpdates();
-                }
-              }}
-              style={{ cursor: 'pointer' }}
+              aria-label="Status e Atualizações do Aplicativo"
             >
-              {runtimePlatform.icon} {runtimePlatform.label} v{runtimePlatform.version}
-              {hasNewVersionPending && <span className="update-ping" title="Nova versão disponível!"></span>}
+              <img src="apple-touch-icon.png" alt="Garagem em Miniatura" className="app-logo-img" />
+              {hasNewVersionPending && (
+                <span className="logo-notification-badge" title="Nova versão disponível!">🔔</span>
+              )}
+            </button>
+            <span className="logo-text">
+              Garagem<span>Miniatura</span>
             </span>
             {isCuratorUnlocked && (
               <button
@@ -1596,7 +1594,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
                 onClick={() => setCuratorModalOpen(true)}
                 title="Abrir Painel do Curador"
               >
-                🛡️ Curador Ativo
+                🛡️ Curador
               </button>
             )}
           </div>
@@ -1659,18 +1657,6 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               }}
             >
               📖 Sobre o Projeto
-            </button>
-            <button
-              type="button"
-              className="nav-btn-link"
-              onClick={() => {
-                setMenuOpen(false);
-                handleManualCheckUpdates();
-              }}
-              title="Verificar atualizações do aplicativo"
-            >
-              🔄 Atualizações
-              {hasNewVersionPending && <span className="update-ping"></span>}
             </button>
             <button
               type="button"
@@ -2541,7 +2527,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         title="Gabarito de Estúdio — Scanner IA"
       />
 
-      {/* NOTIFICAÇÃO DE NOVA VERSÃO (VISUAL E SONORA) */}
+      {/* NOTIFICAÇÃO E STATUS DO APLICATIVO (VISUAL E SONORO) */}
       <UpdateNotificationModal
         isOpen={isUpdateModalOpen}
         onClose={handleCloseUpdateModal}
@@ -2549,7 +2535,9 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         currentVersion={runtimePlatform.version}
         platformLabel={runtimePlatform.label}
         platformType={runtimePlatform.type}
+        isUpdateAvailable={hasNewVersionPending}
         onPlaySoundAgain={playNotificationSound}
+        onRecheck={handleManualCheckUpdates}
       />
 
       <footer className="footer" id="sobre">

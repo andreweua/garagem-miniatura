@@ -8,7 +8,9 @@ interface UpdateNotificationModalProps {
   currentVersion: string;
   platformLabel: string;
   platformType: 'android' | 'ios' | 'pwa' | 'web';
+  isUpdateAvailable: boolean;
   onPlaySoundAgain?: () => void;
+  onRecheck?: () => void;
 }
 
 export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = ({
@@ -18,12 +20,15 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
   currentVersion,
   platformLabel,
   platformType,
-  onPlaySoundAgain
+  isUpdateAvailable,
+  onPlaySoundAgain,
+  onRecheck
 }) => {
-  if (!isOpen || !remoteInfo) return null;
+  if (!isOpen) return null;
 
   const isAndroid = platformType === 'android';
-  const downloadUrl = remoteInfo.downloadUrl || 'https://github.com/andreweua/garagem-miniatura/releases';
+  const downloadUrl = remoteInfo?.downloadUrl || 'https://github.com/andreweua/garagem-miniatura/releases';
+  const targetVer = remoteInfo?.version || currentVersion;
 
   const handleUpdateAction = () => {
     if (isAndroid) {
@@ -52,56 +57,69 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
         aria-labelledby="update-title"
       >
         <div className="update-modal-header">
-          <div className="update-badge-pill">
-            <span className="pulse-dot"></span>
-            NOVA ATUALIZAÇÃO DISPONÍVEL
+          <div className={`update-badge-pill ${isUpdateAvailable ? 'has-update' : 'up-to-date'}`}>
+            <span className={`pulse-dot ${isUpdateAvailable ? 'warning' : 'success'}`}></span>
+            {isUpdateAvailable ? 'NOVA VERSÃO DISPONÍVEL' : 'STATUS DO APLICATIVO'}
           </div>
           <button
             type="button"
             className="update-modal-close"
             onClick={onClose}
-            aria-label="Fechar notificação"
+            aria-label="Fechar janela"
           >
             &times;
           </button>
         </div>
 
         <div className="update-modal-body">
-          <div className="update-version-hero">
-            <div className="version-box current">
-              <span className="box-label">Sua Versão</span>
-              <span className="box-val">{currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`}</span>
-              <small className="box-sub">{platformLabel}</small>
-            </div>
-            <div className="version-arrow">➔</div>
-            <div className="version-box target">
-              <span className="box-label">Nova Versão</span>
-              <span className="box-val">{remoteInfo.version.startsWith('v') ? remoteInfo.version : `v${remoteInfo.version}`}</span>
-              <small className="box-sub">Disponível agora</small>
-            </div>
-          </div>
+          {isUpdateAvailable ? (
+            <>
+              <div className="update-version-hero">
+                <div className="version-box current">
+                  <span className="box-label">Sua Versão</span>
+                  <span className="box-val">{currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`}</span>
+                  <small className="box-sub">{platformLabel}</small>
+                </div>
+                <div className="version-arrow">➔</div>
+                <div className="version-box target">
+                  <span className="box-label">Nova Versão</span>
+                  <span className="box-val">{targetVer.startsWith('v') ? targetVer : `v${targetVer}`}</span>
+                  <small className="box-sub">Disponível agora</small>
+                </div>
+              </div>
 
-          <div className="update-notes-card">
-            <h4>✨ O que há de novo nesta versão:</h4>
-            <p className="update-notes-text">
-              {remoteInfo.releaseNotes || 'Melhorias de desempenho, navegação aprimorada e correções de segurança.'}
-            </p>
-            {remoteInfo.releaseDate && (
-              <small className="update-date">Lançado em: {remoteInfo.releaseDate}</small>
-            )}
-          </div>
+              <div className="update-notes-card">
+                <h4>✨ O que há de novo:</h4>
+                <p className="update-notes-text">
+                  {remoteInfo?.releaseNotes || 'Melhorias de desempenho, navegação moderna e correções de segurança.'}
+                </p>
+                {remoteInfo?.releaseDate && (
+                  <small className="update-date">Lançado em: {remoteInfo.releaseDate}</small>
+                )}
+              </div>
 
-          {isAndroid && (
-            <div className="update-native-notice">
-              ℹ️ <strong>Aplicativo Android Nativo (.APK):</strong><br />
-              Para receber as novidades acima, toque no botão abaixo para baixar o arquivo <code>Garagem-Miniatura-{remoteInfo.version}.apk</code> diretamente do GitHub e instale-o no seu aparelho. Seus dados e preferências locais serão preservados.
-            </div>
-          )}
-
-          {!isAndroid && (
-            <div className="update-native-notice">
-              ⚡ <strong>PWA / Web:</strong><br />
-              Basta tocar no botão abaixo para recarregar a aplicação e ativar a versão mais recente instantaneamente.
+              {isAndroid ? (
+                <div className="update-native-notice">
+                  🤖 <strong>Aplicativo Android Nativo:</strong><br />
+                  Toque no botão abaixo para baixar o arquivo <code>Garagem-Miniatura-{targetVer}.apk</code> no GitHub Releases e instale-o no aparelho. Seus dados locais são preservados.
+                </div>
+              ) : (
+                <div className="update-native-notice">
+                  ⚡ <strong>PWA / Web:</strong><br />
+                  Toque no botão abaixo para recarregar e ativar a versão mais recente instantaneamente.
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="uptodate-card-body">
+              <div className="uptodate-icon-ring">✅</div>
+              <h3>Aplicativo Atualizado</h3>
+              <p className="uptodate-version-pill">
+                {platformLabel} • {currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`}
+              </p>
+              <p className="uptodate-desc">
+                Você já está rodando a compilação mais recente do acervo Garagem em Miniatura. Todas as funcionalidades de curadoria, fotos em alta resolução e IA estão operando normalmente.
+              </p>
             </div>
           )}
         </div>
@@ -114,26 +132,48 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               onClick={onPlaySoundAgain}
               title="Testar som de notificação"
             >
-              🔔 Ouvir Som
+              🔔 Som
             </button>
           )}
 
           <div className="update-actions-group">
-            <button
-              type="button"
-              className="btn-remind-later"
-              onClick={onClose}
-            >
-              Lembrar Mais Tarde
-            </button>
-
-            <button
-              type="button"
-              className="btn-update-now"
-              onClick={handleUpdateAction}
-            >
-              {isAndroid ? '⬇️ Baixar APK Atualizado' : '🔄 Atualizar Agora'}
-            </button>
+            {isUpdateAvailable ? (
+              <>
+                <button
+                  type="button"
+                  className="btn-remind-later"
+                  onClick={onClose}
+                >
+                  Depois
+                </button>
+                <button
+                  type="button"
+                  className="btn-update-now"
+                  onClick={handleUpdateAction}
+                >
+                  {isAndroid ? '⬇️ Baixar APK' : '🔄 Atualizar'}
+                </button>
+              </>
+            ) : (
+              <>
+                {onRecheck && (
+                  <button
+                    type="button"
+                    className="btn-remind-later"
+                    onClick={onRecheck}
+                  >
+                    🔄 Checar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn-update-now"
+                  onClick={onClose}
+                >
+                  OK
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
