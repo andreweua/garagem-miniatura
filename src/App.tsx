@@ -349,7 +349,7 @@ export default function App() {
 
   useEffect(() => {
     let isMounted = true;
-    // Checagem automática 2 segundos após inicialização
+    // Checagem silenciosa de versão em segundo plano apenas para ativar o badge no ícone
     const timer = setTimeout(async () => {
       try {
         const latest = await fetchLatestVersion();
@@ -359,15 +359,10 @@ export default function App() {
         if (isNewerVersion(current, latest.version)) {
           setRemoteUpdateInfo(latest);
           setHasNewVersionPending(true);
-
-          const dismissed = sessionStorage.getItem(`garagem_update_dismissed_${latest.version}`);
-          if (!dismissed) {
-            setIsUpdateModalOpen(true);
-            playNotificationSound();
-          }
+          // Não abre modal automaticamente para não bloquear a tela do usuário
         }
       } catch {
-        // Silencioso em caso de ausência de rede
+        // Silencioso
       }
     }, 2000);
 
