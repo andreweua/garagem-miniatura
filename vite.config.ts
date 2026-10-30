@@ -10,6 +10,25 @@ export default defineConfig({
   plugins: [
     react(),
     {
+      name: 'version-json-sync',
+      buildStart() {
+        try {
+          const pkgRaw = fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8');
+          const pkg = JSON.parse(pkgRaw);
+          const versionData = {
+            version: pkg.version,
+            releaseDate: new Date().toISOString().split('T')[0],
+            releaseNotes: pkg.description || `Versão v${pkg.version}`,
+            downloadUrl: `https://github.com/andreweua/garagem-miniatura/releases`
+          };
+          const publicPath = path.resolve(__dirname, 'public/version.json');
+          fs.writeFileSync(publicPath, JSON.stringify(versionData, null, 2), 'utf-8');
+        } catch (e) {
+          console.warn('Erro ao sincronizar version.json:', e);
+        }
+      }
+    },
+    {
       name: 'ia-reports-writer',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {

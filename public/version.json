@@ -1,6 +1,6 @@
 {
   "version": "2.9.0",
-  "releaseDate": "2026-10-29",
-  "releaseNotes": "Novo visual de detalhes com abas deslizantes, lightbox com zoom na foto da miniatura, bloqueio de edição para visitantes e IA Gemini 2.5 Flash de alta velocidade.",
+  "releaseDate": "2026-10-30",
+  "releaseNotes": "App Multiplataforma Nativo (Android + iOS) e PWA com Live Over-The-Air (OTA) - Catálogo interativo, Painel de Curadoria com PIN, Fila de Moderação e Câmera de Estúdio 4:3 (PereiraLabs)",
   "downloadUrl": "https://github.com/andreweua/garagem-miniatura/releases"
 }

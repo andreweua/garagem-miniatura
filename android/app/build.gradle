@@ -1,4 +1,28 @@
 apply plugin: 'com.android.application'
+import groovy.json.JsonSlurper
+
+def getNpmVersion() {
+    try {
+        def inputFile = new File(project.rootDir, '../package.json')
+        if (inputFile.exists()) {
+            def json = new JsonSlurper().parseText(inputFile.text)
+            return json.version ?: "1.0.0"
+        }
+    } catch (Exception e) {}
+    return "1.0.0"
+}
+
+def getNpmVersionCode() {
+    try {
+        def ver = getNpmVersion()
+        def parts = ver.replaceAll("[^0-9.]", "").tokenize(".")
+        int major = parts.size() > 0 ? Integer.parseInt(parts[0]) : 1
+        int minor = parts.size() > 1 ? Integer.parseInt(parts[1]) : 0
+        int patch = parts.size() > 2 ? Integer.parseInt(parts[2]) : 0
+        return (major * 10000) + (minor * 100) + patch
+    } catch (Exception e) {}
+    return 1
+}
 
 android {
     namespace "com.garagemminiatura.app"
@@ -7,8 +31,8 @@ android {
         applicationId "com.garagemminiatura.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 290
-        versionName "2.9.0"
+        versionCode getNpmVersionCode()
+        versionName getNpmVersion()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
