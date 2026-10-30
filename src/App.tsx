@@ -1665,6 +1665,40 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
         </div>
       </header>
 
+      {/* BARRA DE NOTIFICAÇÃO DE NOVA VERSÃO (LEVE E VISÍVEL) */}
+      {hasNewVersionPending && remoteUpdateInfo && (
+        <div className="update-floating-bar animate-fade-in">
+          <div className="container update-bar-inner">
+            <div className="update-bar-info">
+              <span className="update-bar-badge">NOVIDADE</span>
+              <span className="update-bar-msg">
+                Nova versão <strong>v{remoteUpdateInfo.version}</strong> disponível!
+              </span>
+            </div>
+            <div className="update-bar-actions">
+              <button
+                type="button"
+                className="btn-update-bar-action"
+                onClick={() => {
+                  setIsUpdateModalOpen(true);
+                  playNotificationSound();
+                }}
+              >
+                {runtimePlatform.type === 'android' ? '⬇️ Baixar APK no GitHub' : '🔄 Atualizar'}
+              </button>
+              <button
+                type="button"
+                className="btn-update-bar-close"
+                onClick={() => setHasNewVersionPending(false)}
+                title="Fechar aviso temporariamente"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="hero">
         <div className="container hero-content">
           <span className="badge">Coleção Particular • by PereiraLabs</span>

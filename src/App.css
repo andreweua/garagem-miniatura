@@ -158,6 +158,83 @@ body {
   color: var(--primary);
 }
 
+/* BARRA FLUTUANTE DE NOTIFICAÇÃO DE ATUALIZAÇÃO */
+.update-floating-bar {
+  background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+  border-bottom: 2px solid #f59e0b;
+  padding: 8px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 90;
+}
+
+.update-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.update-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.update-bar-badge {
+  background: #f59e0b;
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.update-bar-msg {
+  font-size: 0.85rem;
+  color: #f8fafc;
+}
+
+.update-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btn-update-bar-action {
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-update-bar-action:hover {
+  background: #059669;
+}
+
+.btn-update-bar-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.btn-update-bar-close:hover {
+  color: #ffffff;
+}
+
 /* NOTIFICAÇÃO VISUAL DE ATUALIZAÇÃO */
 .update-modal-backdrop {
   position: fixed;
