@@ -92,7 +92,7 @@ export default defineConfig({
               const indexPath = path.join(dir, 'index.json')
               let indexData: { description: string; reports: unknown[] } = {
                 description:
-                  'Diretório de relatórios gerados automaticamente pela IA (gemini-2.5-flash) para o acervo Garagem em Miniatura.',
+                  'Diretório de relatórios gerados automaticamente pela IA (gemini-3.5-flash-lite / gemini-3.8-flash) para o acervo Garagem em Miniatura.',
                 reports: []
               }
               if (fs.existsSync(indexPath)) {

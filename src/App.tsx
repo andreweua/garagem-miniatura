@@ -1495,7 +1495,12 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       let rawResponse = '';
-      const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+      const candidateModels = [
+        'gemini-3.5-flash-lite',
+        'gemini-3.5-flash',
+        'gemini-3-flash-preview',
+        'gemini-3.8-flash'
+      ];
       let lastErr: unknown = null;
 
       for (const m of candidateModels) {
@@ -1515,6 +1520,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
           rawResponse = response.text || '';
           if (rawResponse) break;
         } catch (e) {
+          console.warn(`[Scanner IA] Modelo ${m} indisponível ou com erro, tentando próximo...`, e);
           lastErr = e;
         }
       }
@@ -2392,7 +2398,7 @@ Responda em português usando Markdown limpo (sem blocos de código \`\`\`, sem 
               <h3>🔑 Chave da API Google Gemini</h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
                 Insira sua chave do Google AI Studio para habilitar o reconhecimento de
-                miniaturas com o modelo <code>gemini-2.5-flash</code>.
+                miniaturas com os modelos oficiais de alta velocidade (<code>gemini-3.5-flash-lite</code> e <code>gemini-3.5-flash</code>).
               </p>
               <div className="key-container">
                 <input

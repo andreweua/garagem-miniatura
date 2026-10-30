@@ -11,6 +11,12 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo,
 
 ---
 
+## [2.9.2] - 2026-10-30
+### Corrigido
+- **Atualização dos Modelos Gemini AI (Erro 404):** Substituição dos modelos descontinuados (`gemini-1.5-flash`, `gemini-2.5-flash`) pelos modelos oficiais vigentes da Google AI Studio (`gemini-3.5-flash-lite`, `gemini-3.5-flash`, `gemini-3-flash-preview` e `gemini-3.8-flash`), eliminando o erro 404 no Scanner e reduzindo o tempo de reconhecimento para ~1.2s.
+
+---
+
 ## [5.3.0] - 2026-10-18
 ### Adicionado
 - **4º Card Métrico de IA:** Adicionado o card interativo `🤖 IA Scanner` na barra de estatísticas do topo, permitindo abrir o modal de reconhecimento com um toque.
